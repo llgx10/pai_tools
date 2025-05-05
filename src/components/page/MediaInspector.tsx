@@ -103,7 +103,7 @@ const MediaInspector: React.FC = () => {
       }
     };
 
-    const handlePopState = (e: PopStateEvent) => {
+    const handlePopState = () => {
       if (fileUploaded) {
         const message = "You have unsaved data. Are you sure you want to leave?";
         const isConfirmed = window.confirm(message);
