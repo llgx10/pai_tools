@@ -47,11 +47,10 @@ const MediaInspector: React.FC = () => {
     ? visibleData.filter((row) => row.isFaulty)
     : visibleData;
 
-  const handleFaultyChange = (idx: number) => {
-    const newData = [...visibleData];
-    newData[idx].isFaulty = !newData[idx].isFaulty; // Toggle the 'isFaulty' value
-    setVisibleData(newData);
-  };
+  const handleFaultyChange = (index: number) => {
+      const currentValue = visibleData[index]?.isFaulty ?? false;
+      updateRow(index, "isFaulty", !currentValue);
+    };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,11 +71,19 @@ const MediaInspector: React.FC = () => {
           complete: (results: { data: RowData[] }) => {
             const jsonData = results.data as RowData[];
 
-            const withMedia = jsonData.map((row) => ({
-              ...row,
-              media: row["CREATIVE_URL_SUPPLIER"],
-              remark: "",
-            }));
+            const withMedia = jsonData.map((row) => {
+              const rawIsFaulty = row.isFaulty;
+            
+              return {
+                ...row,
+                media: row["CREATIVE_URL_SUPPLIER"],
+                remark: row.remark ?? "",
+                isFaulty:
+                  typeof rawIsFaulty === "boolean"
+                    ? rawIsFaulty
+                    : ["true", "yes", "1"].includes(String(rawIsFaulty).toLowerCase()),
+              };
+            });
 
             setAllData(withMedia);
             setVisibleData(withMedia.slice(0, CHUNK_SIZE));
@@ -90,11 +97,19 @@ const MediaInspector: React.FC = () => {
         const ws = wb.Sheets[wsname];
         const jsonData = XLSX.utils.sheet_to_json<RowData>(ws);
 
-        const withMedia = jsonData.map((row) => ({
-          ...row,
-          media: row["CREATIVE_URL_SUPPLIER"],
-          remark: "",
-        }));
+        const withMedia = jsonData.map((row) => {
+          const rawIsFaulty = row.isFaulty;
+        
+          return {
+            ...row,
+            media: row["CREATIVE_URL_SUPPLIER"],
+            remark: row.remark ?? "",
+            isFaulty:
+              typeof rawIsFaulty === "boolean"
+                ? rawIsFaulty
+                : ["true", "yes", "1"].includes(String(rawIsFaulty).toLowerCase()),
+          };
+        });
 
         setAllData(withMedia);
         setVisibleData(withMedia.slice(0, CHUNK_SIZE));
@@ -177,15 +192,29 @@ const MediaInspector: React.FC = () => {
   };
 
   const handleRemarkChange = (index: number, value: string) => {
-    const updated = [...visibleData];
-    updated[index].remark = value;
-    setVisibleData(updated);
+    updateRow(index, "remark", value);
+  };
 
+  const updateRow = (
+    index: number,
+    field: string,
+    value: any
+  ) => {
+    const updatedVisible = [...visibleData];
+    updatedVisible[index] = {
+      ...updatedVisible[index],
+      [field]: value,
+    };
+    setVisibleData(updatedVisible);
+  
     const globalIndex = (currentChunk - 1) * CHUNK_SIZE + index;
-    const globalData = [...allData];
-    if (globalIndex < globalData.length) {
-      globalData[globalIndex].remark = value;
-      setAllData(globalData);
+    if (globalIndex < allData.length) {
+      const updatedAll = [...allData];
+      updatedAll[globalIndex] = {
+        ...updatedAll[globalIndex],
+        [field]: value,
+      };
+      setAllData(updatedAll);
     }
   };
 
