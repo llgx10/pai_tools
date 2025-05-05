@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {useState } from 'react';
 import axios from 'axios';
 
 export default function CreatePageModal({
@@ -13,18 +13,18 @@ export default function CreatePageModal({
   onPageCreated?: () => void;
 }) {
   const [pageName, setPageName] = useState('');
-  const [tables, setTables] = useState<string[]>([]);
+  // const [tables, setTables] = useState<string[]>([]);
   const [sourceTable, setSourceTable] = useState('');
   const [valueType, setValueType] = useState<'NORMALIZED' | 'UNNORMALIZED' | ''>('');
 
-  useEffect(() => {
-    if (open) {
-      axios
-        .get('/api/bigquery/tables')
-        .then((res) => setTables(res.data.tables || []))
-        .catch(console.error);
-    }
-  }, [open]);
+  // useEffect(() => {
+  //   if (open) {
+  //     axios
+  //       .get('/api/bigquery/tables')
+  //       .then((res) => setTables(res.data.tables || []))
+  //       .catch(console.error);
+  //   }
+  // }, [open]);
 
   const handleCreate = async () => {
     if (!pageName || !sourceTable || !valueType) return;
