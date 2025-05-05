@@ -207,8 +207,9 @@ const MediaInspector: React.FC = () => {
     };
     setVisibleData(updatedVisible);
   
-    const globalIndex = (currentChunk - 1) * CHUNK_SIZE + index;
-    if (globalIndex < allData.length) {
+    const row = visibleData[index];
+    const globalIndex = allData.findIndex(r => r === row);
+    if (globalIndex !== -1) {
       const updatedAll = [...allData];
       updatedAll[globalIndex] = {
         ...updatedAll[globalIndex],
