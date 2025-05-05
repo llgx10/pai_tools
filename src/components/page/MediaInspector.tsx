@@ -21,33 +21,37 @@ const MediaInspector: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+
+  
+  
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+  
     const reader = new FileReader();
     const isCSV = file.name.endsWith(".csv");
-    setFileName(file.name); // Set the file name when it's uploaded
-    setFileUploaded(true); // Set the state to indicate the file is uploaded
-
+    setFileName(file.name);
+    setFileUploaded(true);
+  
     reader.onload = (evt) => {
       const bstr = evt.target?.result;
-
+  
       if (isCSV) {
         Papa.parse(bstr as string, {
           header: true,
           skipEmptyLines: true,
-          complete: (results: { data: RowData[]; }) => {
+          complete: (results: { data: RowData[] }) => {
             const jsonData = results.data as RowData[];
-
+  
             const withMedia = jsonData.map((row) => ({
               ...row,
               media: row["CREATIVE_URL_SUPPLIER"],
               remark: "",
             }));
-
+  
             setAllData(withMedia);
             setVisibleData(withMedia.slice(0, CHUNK_SIZE));
+            localStorage.setItem('mediaData', JSON.stringify(withMedia));
             setCurrentChunk(1);
           },
         });
@@ -56,71 +60,98 @@ const MediaInspector: React.FC = () => {
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         const jsonData = XLSX.utils.sheet_to_json<RowData>(ws);
-
+  
         const withMedia = jsonData.map((row) => ({
           ...row,
           media: row["CREATIVE_URL_SUPPLIER"],
           remark: "",
         }));
-
+  
         setAllData(withMedia);
         setVisibleData(withMedia.slice(0, CHUNK_SIZE));
+        localStorage.setItem('mediaData', JSON.stringify(withMedia));
         setCurrentChunk(1);
       }
     };
-
+  
     if (isCSV) {
       reader.readAsText(file, "utf-8");
     } else {
       reader.readAsBinaryString(file);
     }
   };
-
   
-const handleExport = () => {
-  if (allData.length === 0) return;
+  const handleExport = () => {
+    if (allData.length === 0) return;
+  
+    const exportData = allData.map(({ media, ...rest }) => rest);
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Media Data");
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+    const exportFileName = fileName?.replace(/\.(xlsx|xls|csv)$/i, "") || "exported_data";
+    saveAs(blob, `${exportFileName}_remarks.xlsx`);
+  };
 
-  const exportData = allData.map(({ media, ...rest }) => rest);
-  const ws = XLSX.utils.json_to_sheet(exportData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Media Data");
-  const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  const blob = new Blob([wbout], { type: "application/octet-stream" });
-  const exportFileName = fileName?.replace(/\.(xlsx|xls|csv)$/i, "") || "exported_data";
-  saveAs(blob, `${exportFileName}_remarks.xlsx`);
-};
+   useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (fileUploaded) {
+        const message = "You have unsaved data. Are you sure you want to leave?";
+        e.returnValue = message;
+        return message;
+      }
+    };
 
+    const handlePopState = (e: PopStateEvent) => {
+      if (fileUploaded) {
+        const message = "You have unsaved data. Are you sure you want to leave?";
+        const isConfirmed = window.confirm(message);
+        if (!isConfirmed) {
+          window.history.pushState(null, "", window.location.href);
+        }
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+    window.history.pushState(null, "", window.location.href);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [fileUploaded]);
+  
   const renderMedia = (url?: string) => {
     if (!url) return null;
     const isVideo = url.match(/\.(mp4|webm|ogg)$/i);
-    const commonClasses = "w-full h-min:[50px] object-contain rounded"; // or 'object-cover'
-
+    const commonClasses = "w-full h-min:[50px] object-contain rounded";
+  
     return isVideo ? (
       <video src={url} controls className={commonClasses} />
     ) : (
       <img src={url} alt="media" className={commonClasses} />
     );
   };
-
+  
   const handleScroll = () => {
     const container = containerRef.current;
     if (!container) return;
-
+  
     const bottomReached =
       container.scrollTop + container.clientHeight >= container.scrollHeight - 50;
-
+  
     if (bottomReached && visibleData.length < allData.length) {
       const nextChunk = currentChunk + 1;
       setVisibleData(allData.slice(0, nextChunk * CHUNK_SIZE));
       setCurrentChunk(nextChunk);
     }
   };
-
+  
   const handleRemarkChange = (index: number, value: string) => {
     const updated = [...visibleData];
     updated[index].remark = value;
     setVisibleData(updated);
-
+  
     const globalIndex = (currentChunk - 1) * CHUNK_SIZE + index;
     const globalData = [...allData];
     if (globalIndex < globalData.length) {
@@ -128,16 +159,16 @@ const handleExport = () => {
       setAllData(globalData);
     }
   };
-
+  
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
-
+  
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-
+  
     const files = e.dataTransfer.files;
     if (files && files[0]) {
       const file = files[0];
@@ -145,23 +176,23 @@ const handleExport = () => {
       const isCSV = file.name.endsWith(".csv");
       setFileName(file.name);
       setFileUploaded(true);
-
+      
       reader.onload = (evt) => {
         const bstr = evt.target?.result;
-
+  
         if (isCSV) {
           Papa.parse(bstr as string, {
             header: true,
             skipEmptyLines: true,
-            complete: (results: { data: RowData[]; }) => {
+            complete: (results: { data: RowData[] }) => {
               const jsonData = results.data as RowData[];
-
+  
               const withMedia = jsonData.map((row) => ({
                 ...row,
                 media: row["CREATIVE_URL_SUPPLIER"],
                 remark: "",
               }));
-
+  
               setAllData(withMedia);
               setVisibleData(withMedia.slice(0, CHUNK_SIZE));
               setCurrentChunk(1);
@@ -172,19 +203,19 @@ const handleExport = () => {
           const wsname = wb.SheetNames[0];
           const ws = wb.Sheets[wsname];
           const jsonData = XLSX.utils.sheet_to_json<RowData>(ws);
-
+  
           const withMedia = jsonData.map((row) => ({
             ...row,
             media: row["CREATIVE_URL_SUPPLIER"],
             remark: "",
           }));
-
+  
           setAllData(withMedia);
           setVisibleData(withMedia.slice(0, CHUNK_SIZE));
           setCurrentChunk(1);
         }
       };
-
+  
       if (isCSV) {
         reader.readAsText(file, "utf-8");
       } else {
@@ -192,7 +223,7 @@ const handleExport = () => {
       }
     }
   };
-
+  
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
@@ -204,7 +235,7 @@ const handleExport = () => {
       }
     };
   }, [visibleData, currentChunk, allData]);
-
+  
   return (
     <div className="mx-auto p-6">
       <h2 className="text-xl font-bold mb-4">Upload Excel or CSV File</h2>
