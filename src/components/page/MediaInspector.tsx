@@ -287,7 +287,7 @@ const MediaInspector: React.FC = () => {
             className="min-w-full border border-gray-300 table-auto"
             style={{ tableLayout: "fixed" }}
           >
-            <thead className="bg-gray-100 text-left">
+            <thead className="bg-gray-100 sticky top-0 z-10 text-left">
               <tr>
                 {Object.keys(visibleData[0])
                   .filter((key) => key !== "media" && key !== "remark")
