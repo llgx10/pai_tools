@@ -43,9 +43,11 @@ const MediaInspector: React.FC = () => {
     ? ((faultyImpressions / totalImpressions) * 100).toFixed(2)
     : null;
 
-  const filteredData = filterFaulty
-    ? visibleData.filter((row) => row.isFaulty)
-    : visibleData;
+    const filteredData = filterFaulty
+    ? visibleData
+        .map((row, originalIndex) => ({ row, originalIndex }))
+        .filter(({ row }) => row.isFaulty)
+    : visibleData.map((row, originalIndex) => ({ row, originalIndex }));
 
   const handleFaultyChange = (index: number) => {
       const currentValue = visibleData[index]?.isFaulty ?? false;
@@ -191,8 +193,8 @@ const MediaInspector: React.FC = () => {
     }
   };
 
-  const handleRemarkChange = (index: number, value: string) => {
-    updateRow(index, "remark", value);
+  const handleRemarkChange = (originalIndex: number, value: string) => {
+    updateRow(originalIndex, "remark", value);
   };
 
   const updateRow = (
@@ -401,62 +403,63 @@ const MediaInspector: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredData.length === 0 ? (
-              <tr>
-                <td colSpan={baseKeys.length + 4} className="text-center p-4 text-gray-500">
-                  No data to display.
-                </td>
-              </tr>
-            ) : (
-              filteredData.map((row, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  {/* Index column */}
-                  <td className="border px-3 py-2 text-center">{idx + 1}</td>
-
-                  {/* Other columns */}
-                  {baseKeys.map((key, index) => (
-                    <td
-                      key={key}
-                      className="border px-3 py-2 text-sm"
-                      style={{
-                        width: index === 0 ? "150px" : "200px",
-                        wordWrap: "break-word",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        wordBreak: "break-all",
-                        whiteSpace: "normal",
-                      }}
-                    >
-                      {row[key]}
-                    </td>
-                  ))}
-
-                  <td className="border p-0 h-40" style={{ width: "10px" }}>
-                    {renderMedia(row.media)}
-                  </td>
-
-                  <td className="border px-3 py-2" style={{ width: "150px" }}>
-                    <input
-                      type="text"
-                      value={row.remark ?? ""}
-                      onChange={(e) => handleRemarkChange(idx, e.target.value)}
-                      className="w-full border rounded px-2 py-1 text-sm"
-                      placeholder="Add remark"
-                    />
-                  </td>
-
-                  <td className="border px-3 py-2 text-center align-middle">
-                    <input
-                      type="checkbox"
-                      checked={row.isFaulty ?? false}
-                      onChange={() => handleFaultyChange(idx)}
-                      className="form-checkbox"
-                    />
+              {filteredData.length === 0 ? (
+                <tr>
+                  <td colSpan={baseKeys.length + 4} className="text-center p-4 text-gray-500">
+                    No data to display.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
+              ) : (
+                filteredData.map((data, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    {/* Index column */}
+                    <td className="border px-3 py-2 text-center">{data.originalIndex + 1}</td>
+
+                    {/* Other columns */}
+                    {baseKeys.map((key, index) => (
+                      <td
+                        key={key}
+                        className="border px-3 py-2 text-sm"
+                        style={{
+                          width: index === 0 ? "150px" : "200px", // Keeps your original column sizing
+                          wordWrap: "break-word",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          wordBreak: "break-all",
+                          whiteSpace: "normal",
+                        }}
+                      >
+                        {data.row[key]}
+                      </td>
+                    ))}
+
+                    <td className="border p-0 h-40" style={{ width: "10px" }}>
+                      {renderMedia(data.row.media)}
+                    </td>
+
+                    <td className="border px-3 py-2" style={{ width: "150px" }}>
+                    <input
+                    type="text"
+                    value={data.row.remark ?? ""}
+                    onChange={(e) => handleRemarkChange(data.originalIndex, e.target.value)}
+                    className="w-full border rounded px-2 py-1 text-sm"
+                    placeholder="Add remark"
+                  />
+
+                    </td>
+
+                    <td className="border px-3 py-2 text-center align-middle">
+                      <input
+                        type="checkbox"
+                        checked={data.row.isFaulty ?? false}
+                        onChange={() => handleFaultyChange(data.originalIndex)}
+                        className="form-checkbox"
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
 
         </table>
       </div>

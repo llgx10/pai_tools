@@ -27,6 +27,7 @@
     "react-dom": "^19.0.0",
     "react-fontawesome": "^1.7.1",
     "react-router-dom": "^7.4.1",
+    "react-window": "^1.8.11",
     "sqlite3": "^5.1.7",
     "xlsx": "^0.18.5"
   },
