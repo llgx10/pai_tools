@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { saveAs } from 'file-saver';
-
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 
@@ -24,8 +23,51 @@ const MediaInspector: React.FC = () => {
   const baseKeys = Object.keys(visibleData[0] || {}).filter(
     (key) => !["media", "remark", "isFaulty"].includes(key)
   );
+
+
+
   const totalRows = allData.length;
   const faultyRows = allData.filter((row) => row.isFaulty).length;
+
+  const [advertiserData, setAdvertiserData] = useState<{ id: string; value: number }[]>([]);
+  const [campaignData, setCampaignData] = useState<{ id: string; value: number }[]>([]);
+
+  useEffect(() => {
+    if (allData.length > 0) {
+      const newAdvertiserData = [...advertiserData];
+      const newCampaignData = [...campaignData];
+
+      allData.forEach((item) => {
+        // Process ADVERTISER_NAME
+        const advertiser = item["ADVERTISER_NAME"];
+        if (advertiser) {
+          const existingAdvertiser = newAdvertiserData.find((entry) => entry.id === advertiser);
+          if (existingAdvertiser) {
+            existingAdvertiser.value += 1;
+          } else {
+            newAdvertiserData.push({ id: advertiser, value: 1 });
+          }
+        }
+
+        // Process CREATIVE_CAMPAIGN_NAME
+        const campaign = item["CREATIVE_CAMPAIGN_NAME"];
+        if (campaign) {
+          const existingCampaign = newCampaignData.find((entry) => entry.id === campaign);
+          if (existingCampaign) {
+            existingCampaign.value += 1;
+          } else {
+            newCampaignData.push({ id: campaign, value: 1 });
+          }
+        }
+      });
+
+      // Set state after processing
+      setAdvertiserData(newAdvertiserData);
+      setCampaignData(newCampaignData);
+    }
+  }, [allData]);
+
+
 
   const hasImpressions = allData[0] && "IMPRESSIONS" in allData[0];
 
@@ -43,16 +85,16 @@ const MediaInspector: React.FC = () => {
     ? ((faultyImpressions / totalImpressions) * 100).toFixed(2)
     : null;
 
-    const filteredData = filterFaulty
+  const filteredData = filterFaulty
     ? visibleData
-        .map((row, originalIndex) => ({ row, originalIndex }))
-        .filter(({ row }) => row.isFaulty)
+      .map((row, originalIndex) => ({ row, originalIndex }))
+      .filter(({ row }) => row.isFaulty)
     : visibleData.map((row, originalIndex) => ({ row, originalIndex }));
 
   const handleFaultyChange = (index: number) => {
-      const currentValue = visibleData[index]?.isFaulty ?? false;
-      updateRow(index, "isFaulty", !currentValue);
-    };
+    const currentValue = visibleData[index]?.isFaulty ?? false;
+    updateRow(index, "isFaulty", !currentValue);
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -75,7 +117,7 @@ const MediaInspector: React.FC = () => {
 
             const withMedia = jsonData.map((row) => {
               const rawIsFaulty = row.isFaulty;
-            
+
               return {
                 ...row,
                 media: row["CREATIVE_URL_SUPPLIER"],
@@ -101,7 +143,7 @@ const MediaInspector: React.FC = () => {
 
         const withMedia = jsonData.map((row) => {
           const rawIsFaulty = row.isFaulty;
-        
+
           return {
             ...row,
             media: row["CREATIVE_URL_SUPPLIER"],
@@ -208,7 +250,7 @@ const MediaInspector: React.FC = () => {
       [field]: value,
     };
     setVisibleData(updatedVisible);
-  
+
     const row = visibleData[index];
     const globalIndex = allData.findIndex(r => r === row);
     if (globalIndex !== -1) {
@@ -403,63 +445,63 @@ const MediaInspector: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-              {filteredData.length === 0 ? (
-                <tr>
-                  <td colSpan={baseKeys.length + 4} className="text-center p-4 text-gray-500">
-                    No data to display.
+            {filteredData.length === 0 ? (
+              <tr>
+                <td colSpan={baseKeys.length + 4} className="text-center p-4 text-gray-500">
+                  No data to display.
+                </td>
+              </tr>
+            ) : (
+              filteredData.map((data, idx) => (
+                <tr key={idx} className="hover:bg-gray-50">
+                  {/* Index column */}
+                  <td className="border px-3 py-2 text-center">{data.originalIndex + 1}</td>
+
+                  {/* Other columns */}
+                  {baseKeys.map((key, index) => (
+                    <td
+                      key={key}
+                      className="border px-3 py-2 text-sm"
+                      style={{
+                        width: index === 0 ? "150px" : "200px", // Keeps your original column sizing
+                        wordWrap: "break-word",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        wordBreak: "break-all",
+                        whiteSpace: "normal",
+                      }}
+                    >
+                      {data.row[key]}
+                    </td>
+                  ))}
+
+                  <td className="border p-0 h-40" style={{ width: "10px" }}>
+                    {renderMedia(data.row.media)}
+                  </td>
+
+                  <td className="border px-3 py-2" style={{ width: "150px" }}>
+                    <input
+                      type="text"
+                      value={data.row.remark ?? ""}
+                      onChange={(e) => handleRemarkChange(data.originalIndex, e.target.value)}
+                      className="w-full border rounded px-2 py-1 text-sm"
+                      placeholder="Add remark"
+                    />
+
+                  </td>
+
+                  <td className="border px-3 py-2 text-center align-middle">
+                    <input
+                      type="checkbox"
+                      checked={data.row.isFaulty ?? false}
+                      onChange={() => handleFaultyChange(data.originalIndex)}
+                      className="form-checkbox"
+                    />
                   </td>
                 </tr>
-              ) : (
-                filteredData.map((data, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    {/* Index column */}
-                    <td className="border px-3 py-2 text-center">{data.originalIndex + 1}</td>
-
-                    {/* Other columns */}
-                    {baseKeys.map((key, index) => (
-                      <td
-                        key={key}
-                        className="border px-3 py-2 text-sm"
-                        style={{
-                          width: index === 0 ? "150px" : "200px", // Keeps your original column sizing
-                          wordWrap: "break-word",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          wordBreak: "break-all",
-                          whiteSpace: "normal",
-                        }}
-                      >
-                        {data.row[key]}
-                      </td>
-                    ))}
-
-                    <td className="border p-0 h-40" style={{ width: "10px" }}>
-                      {renderMedia(data.row.media)}
-                    </td>
-
-                    <td className="border px-3 py-2" style={{ width: "150px" }}>
-                    <input
-                    type="text"
-                    value={data.row.remark ?? ""}
-                    onChange={(e) => handleRemarkChange(data.originalIndex, e.target.value)}
-                    className="w-full border rounded px-2 py-1 text-sm"
-                    placeholder="Add remark"
-                  />
-
-                    </td>
-
-                    <td className="border px-3 py-2 text-center align-middle">
-                      <input
-                        type="checkbox"
-                        checked={data.row.isFaulty ?? false}
-                        onChange={() => handleFaultyChange(data.originalIndex)}
-                        className="form-checkbox"
-                      />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
+              ))
+            )}
+          </tbody>
 
         </table>
       </div>
@@ -474,6 +516,63 @@ const MediaInspector: React.FC = () => {
           </button>
         </div>
       )}
+
+
+{fileUploaded && (
+  <div className="mt-4 flex flex-col gap-6 w-full">
+    <h2 className="text-xl font-bold mb-4">File Analysis</h2>
+
+    <div className="flex flex-wrap gap-4">
+      {/* Advertiser Pivot Table */}
+      <div className="w-full md:w-1/2 bg-white rounded shadow p-4">
+        <h3 className="font-semibold text-lg mb-2">Advertiser Distribution (Pivot Table)</h3>
+        <table className="w-full table-auto border border-gray-300">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border px-4 py-2 text-left">Advertiser</th>
+              <th className="border px-4 py-2 text-left">Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...advertiserData]
+              .sort((a, b) => b.value - a.value)
+              .map((item: { id: string; value: number }) => (
+                <tr key={item.id}>
+                  <td className="border px-4 py-2 break-words">{item.id}</td>
+                  <td className="border px-4 py-2">{item.value}</td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Campaign Name Pivot Table */}
+      <div className="w-[80%] bg-white rounded shadow p-4">
+        <h3 className="font-semibold text-lg mb-2">Campaign Distribution (Pivot Table)</h3>
+        <table className="w-full table-auto border border-gray-300">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border px-4 py-2 text-left max-w-[60%]">Campaign Name</th>
+              <th className="border px-4 py-2 text-left w-[20%]">Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...campaignData]
+              .sort((a, b) => b.value - a.value)
+              .map((item: { id: string; value: number }) => (
+                <tr key={item.id}>
+                  <td className="border px-4 py-2 break-words max-w-[70%]">{item.id}</td>
+                  <td className="border px-4 py-2">{item.value}</td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </div>
   );
 
