@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { saveAs } from 'file-saver';
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
+import GIF from "gif.js.optimized";
 
 type RowData = {
   [key: string]: any;
@@ -19,7 +20,7 @@ const MediaInspector: React.FC = () => {
   const [fileUploaded, setFileUploaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [filterFaulty, setFilterFaulty] = useState(false);
+  const [filterFaulty, setFilterFaulty] = useState(false)
   const baseKeys = Object.keys(visibleData[0] || {}).filter(
     (key) => !["media", "remark", "isFaulty"].includes(key)
   );
@@ -33,39 +34,36 @@ const MediaInspector: React.FC = () => {
   const [campaignData, setCampaignData] = useState<{ id: string; value: number }[]>([]);
 
   useEffect(() => {
-    if (allData.length > 0) {
-      const newAdvertiserData = [...advertiserData];
-      const newCampaignData = [...campaignData];
+  if (allData.length > 0) {
+    const newAdvertiserData: { id: string; value: number }[] = [];
+    const newCampaignData: { id: string; value: number }[] = [];
 
-      allData.forEach((item) => {
-        // Process ADVERTISER_NAME
-        const advertiser = item["ADVERTISER_NAME"];
-        if (advertiser) {
-          const existingAdvertiser = newAdvertiserData.find((entry) => entry.id === advertiser);
-          if (existingAdvertiser) {
-            existingAdvertiser.value += 1;
-          } else {
-            newAdvertiserData.push({ id: advertiser, value: 1 });
-          }
+    allData.forEach((item) => {
+      const advertiser = item["ADVERTISER_NAME"];
+      if (advertiser) {
+        const existingAdvertiser = newAdvertiserData.find((entry) => entry.id === advertiser);
+        if (existingAdvertiser) {
+          existingAdvertiser.value += 1;
+        } else {
+          newAdvertiserData.push({ id: advertiser, value: 1 });
         }
+      }
 
-        // Process CREATIVE_CAMPAIGN_NAME
-        const campaign = item["CREATIVE_CAMPAIGN_NAME"];
-        if (campaign) {
-          const existingCampaign = newCampaignData.find((entry) => entry.id === campaign);
-          if (existingCampaign) {
-            existingCampaign.value += 1;
-          } else {
-            newCampaignData.push({ id: campaign, value: 1 });
-          }
+      const campaign = item["CREATIVE_CAMPAIGN_NAME"];
+      if (campaign) {
+        const existingCampaign = newCampaignData.find((entry) => entry.id === campaign);
+        if (existingCampaign) {
+          existingCampaign.value += 1;
+        } else {
+          newCampaignData.push({ id: campaign, value: 1 });
         }
-      });
+      }
+    });
 
-      // Set state after processing
-      setAdvertiserData(newAdvertiserData);
-      setCampaignData(newCampaignData);
-    }
-  }, [allData]);
+    setAdvertiserData(newAdvertiserData);
+    setCampaignData(newCampaignData);
+  }
+}, [allData]);
 
 
 
