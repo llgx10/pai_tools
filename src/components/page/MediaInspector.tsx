@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { saveAs } from 'file-saver';
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
-import GIF from "gif.js.optimized";
 
 type RowData = {
   [key: string]: any;
