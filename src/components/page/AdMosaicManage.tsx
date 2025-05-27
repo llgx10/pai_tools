@@ -27,7 +27,7 @@ function AdMosaicManage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState<Page | null>(null);
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  const API_BASE_URL = process.env.API_BASE_URL || '';
 
   // Check user authentication
   useEffect(() => {
