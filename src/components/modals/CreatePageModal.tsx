@@ -1,6 +1,6 @@
 'use client';
 
-import {useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function CreatePageModal({
@@ -13,31 +13,35 @@ export default function CreatePageModal({
   onPageCreated?: () => void;
 }) {
   const [pageName, setPageName] = useState('');
-  // const [tables, setTables] = useState<string[]>([]);
   const [sourceTable, setSourceTable] = useState('');
   const [valueType, setValueType] = useState<'NORMALIZED' | 'UNNORMALIZED' | ''>('');
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // useEffect(() => {
-  //   if (open) {
-  //     axios
-  //       .get('/api/bigquery/tables')
-  //       .then((res) => setTables(res.data.tables || []))
-  //       .catch(console.error);
-  //   }
-  // }, [open]);
+  // Clear message after 3 seconds
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   const handleCreate = async () => {
     if (!pageName || !sourceTable || !valueType) return;
-  
+
     try {
-      await axios.post('http://localhost:3001/create', {
-        pageName,
-        sourceTable,
-        valueType,
-      }, {
-        withCredentials: true, // important for session cookie!
-      });
-  
+      await axios.post(
+        'http://localhost:3001/create',
+        {
+          pageName,
+          sourceTable,
+          valueType,
+        },
+        {
+          withCredentials: true, // important for session cookie!
+        }
+      );
+
+      setMessage({ text: 'Page created successfully!', type: 'success' });
       onPageCreated?.();
       setOpen(false);
       setPageName('');
@@ -45,9 +49,9 @@ export default function CreatePageModal({
       setValueType('');
     } catch (err) {
       console.error('Error creating page:', err);
+      setMessage({ text: 'Failed to create page. Please try again.', type: 'error' });
     }
   };
-  
 
   if (!open) return null;
 
@@ -68,14 +72,14 @@ export default function CreatePageModal({
         </div>
 
         <div>
-              <label className="block text-sm font-medium mb-1">Source Table</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 border rounded"
-                placeholder="project_id.dataset_id.table_id"
-                value={sourceTable}
-                onChange={(e) => setSourceTable(e.target.value)}
-              />
+          <label className="block text-sm font-medium mb-1">Source Table</label>
+          <input
+            type="text"
+            className="w-full px-3 py-2 border rounded"
+            placeholder="project_id.dataset_id.table_id"
+            value={sourceTable}
+            onChange={(e) => setSourceTable(e.target.value)}
+          />
         </div>
 
         <div>
@@ -93,20 +97,32 @@ export default function CreatePageModal({
           </select>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
-          <button
-            onClick={() => setOpen(false)}
-            className="px-4 py-2 border rounded hover:bg-gray-100"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreate}
-            disabled={!pageName || !sourceTable || !valueType}
-            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50 hover:bg-blue-700"
-          >
-            Create
-          </button>
+        <div className="flex flex-col gap-2 pt-4">
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setOpen(false)}
+              className="px-4 py-2 border rounded hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={!pageName || !sourceTable || !valueType}
+              className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50 hover:bg-blue-700"
+            >
+              Create
+            </button>
+          </div>
+
+          {message && (
+            <p
+              className={`text-center font-medium ${
+                message.type === 'success' ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
+              {message.text}
+            </p>
+          )}
         </div>
       </div>
     </div>

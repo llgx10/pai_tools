@@ -37,16 +37,16 @@ export default function PagePreview() {
     <div className="min-h-screen bg-black p-6">
       {/* Filter Dropdown */}
       <div className="mb-6">
-      <select
-            value={brandFilter}
-            onChange={e => setBrandFilter(e.target.value)}
-            className="h-9 px-3 border border-orange-500 bg-black text-white focus:outline-none focus:ring-2 focus:ring-orange-400"
-            >
-            <option>All Brands</option>
-            {brands.map(b => (
-                <option key={b}>{b}</option>
-            ))}
-            </select>
+        <select
+          value={brandFilter}
+          onChange={e => setBrandFilter(e.target.value)}
+          className="px-3 border border-orange-500 bg-black text-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+        >
+          <option>All Brands</option>
+          {brands.map(b => (
+            <option key={b}>{b}</option>
+          ))}
+        </select>
       </div>
 
       {/* Grid */}
@@ -59,7 +59,7 @@ export default function PagePreview() {
             <video
               controls
               src={ad.url}
-              className="w-full h-48 object-cover mb-2"
+               className="w-full aspect-square object-cover mb-2"
             />
             <div className="text-sm text-white font-medium text-center">
               {i + 1}. {ad.brand}

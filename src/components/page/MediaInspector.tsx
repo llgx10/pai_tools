@@ -33,36 +33,36 @@ const MediaInspector: React.FC = () => {
   const [campaignData, setCampaignData] = useState<{ id: string; value: number }[]>([]);
 
   useEffect(() => {
-  if (allData.length > 0) {
-    const newAdvertiserData: { id: string; value: number }[] = [];
-    const newCampaignData: { id: string; value: number }[] = [];
+    if (allData.length > 0) {
+      const newAdvertiserData: { id: string; value: number }[] = [];
+      const newCampaignData: { id: string; value: number }[] = [];
 
-    allData.forEach((item) => {
-      const advertiser = item["ADVERTISER_NAME"];
-      if (advertiser) {
-        const existingAdvertiser = newAdvertiserData.find((entry) => entry.id === advertiser);
-        if (existingAdvertiser) {
-          existingAdvertiser.value += 1;
-        } else {
-          newAdvertiserData.push({ id: advertiser, value: 1 });
+      allData.forEach((item) => {
+        const advertiser = item["ADVERTISER_NAME"];
+        if (advertiser) {
+          const existingAdvertiser = newAdvertiserData.find((entry) => entry.id === advertiser);
+          if (existingAdvertiser) {
+            existingAdvertiser.value += 1;
+          } else {
+            newAdvertiserData.push({ id: advertiser, value: 1 });
+          }
         }
-      }
 
-      const campaign = item["CREATIVE_CAMPAIGN_NAME"];
-      if (campaign) {
-        const existingCampaign = newCampaignData.find((entry) => entry.id === campaign);
-        if (existingCampaign) {
-          existingCampaign.value += 1;
-        } else {
-          newCampaignData.push({ id: campaign, value: 1 });
+        const campaign = item["CREATIVE_CAMPAIGN_NAME"];
+        if (campaign) {
+          const existingCampaign = newCampaignData.find((entry) => entry.id === campaign);
+          if (existingCampaign) {
+            existingCampaign.value += 1;
+          } else {
+            newCampaignData.push({ id: campaign, value: 1 });
+          }
         }
-      }
-    });
+      });
 
-    setAdvertiserData(newAdvertiserData);
-    setCampaignData(newCampaignData);
-  }
-}, [allData]);
+      setAdvertiserData(newAdvertiserData);
+      setCampaignData(newCampaignData);
+    }
+  }, [allData]);
 
 
 
@@ -88,9 +88,9 @@ const MediaInspector: React.FC = () => {
       .filter(({ row }) => row.isFaulty)
     : visibleData.map((row, originalIndex) => ({ row, originalIndex }));
 
-  const handleFaultyChange = (index: number) => {
-    const currentValue = visibleData[index]?.isFaulty ?? false;
-    updateRow(index, "isFaulty", !currentValue);
+  const handleFaultyChange = (originalIndex: number) => {
+    const currentValue = allData[originalIndex]?.isFaulty ?? false;
+    updateRow(originalIndex, "isFaulty", !currentValue);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,28 +237,20 @@ const MediaInspector: React.FC = () => {
   };
 
   const updateRow = (
-    index: number,
-    field: string,
-    value: any
-  ) => {
-    const updatedVisible = [...visibleData];
-    updatedVisible[index] = {
-      ...updatedVisible[index],
-      [field]: value,
-    };
-    setVisibleData(updatedVisible);
-
-    const row = visibleData[index];
-    const globalIndex = allData.findIndex(r => r === row);
-    if (globalIndex !== -1) {
-      const updatedAll = [...allData];
-      updatedAll[globalIndex] = {
-        ...updatedAll[globalIndex],
-        [field]: value,
-      };
-      setAllData(updatedAll);
-    }
+  globalIndex: number,
+  field: string,
+  value: any
+) => {
+  const updatedAll = [...allData];
+  updatedAll[globalIndex] = {
+    ...updatedAll[globalIndex],
+    [field]: value,
   };
+  setAllData(updatedAll);
+
+  const chunkSize = currentChunk * CHUNK_SIZE;
+  setVisibleData(updatedAll.slice(0, chunkSize));
+};
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -515,59 +507,59 @@ const MediaInspector: React.FC = () => {
       )}
 
 
-{fileUploaded && (
-  <div className="mt-4 flex flex-col gap-6 w-full">
-    <h2 className="text-xl font-bold mb-4">File Analysis</h2>
+      {fileUploaded && (
+        <div className="mt-4 flex flex-col gap-6 w-full">
+          <h2 className="text-xl font-bold mb-4">File Analysis</h2>
 
-    <div className="flex flex-wrap gap-4">
-      {/* Advertiser Pivot Table */}
-      <div className="w-full md:w-1/2 bg-white rounded shadow p-4">
-        <h3 className="font-semibold text-lg mb-2">Advertiser Distribution (Pivot Table)</h3>
-        <table className="w-full table-auto border border-gray-300">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-4 py-2 text-left">Advertiser</th>
-              <th className="border px-4 py-2 text-left">Count</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...advertiserData]
-              .sort((a, b) => b.value - a.value)
-              .map((item: { id: string; value: number }) => (
-                <tr key={item.id}>
-                  <td className="border px-4 py-2 break-words">{item.id}</td>
-                  <td className="border px-4 py-2">{item.value}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
+          <div className="flex flex-wrap gap-4">
+            {/* Advertiser Pivot Table */}
+            <div className="w-full md:w-1/2 bg-white rounded shadow p-4">
+              <h3 className="font-semibold text-lg mb-2">Advertiser Distribution (Pivot Table)</h3>
+              <table className="w-full table-auto border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border px-4 py-2 text-left">Advertiser</th>
+                    <th className="border px-4 py-2 text-left">Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...advertiserData]
+                    .sort((a, b) => b.value - a.value)
+                    .map((item: { id: string; value: number }) => (
+                      <tr key={item.id}>
+                        <td className="border px-4 py-2 break-words">{item.id}</td>
+                        <td className="border px-4 py-2">{item.value}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
 
-      {/* Campaign Name Pivot Table */}
-      <div className="w-[80%] bg-white rounded shadow p-4">
-        <h3 className="font-semibold text-lg mb-2">Campaign Distribution (Pivot Table)</h3>
-        <table className="w-full table-auto border border-gray-300">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-4 py-2 text-left max-w-[60%]">Campaign Name</th>
-              <th className="border px-4 py-2 text-left w-[20%]">Count</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...campaignData]
-              .sort((a, b) => b.value - a.value)
-              .map((item: { id: string; value: number }) => (
-                <tr key={item.id}>
-                  <td className="border px-4 py-2 break-words max-w-[70%]">{item.id}</td>
-                  <td className="border px-4 py-2">{item.value}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-)}
+            {/* Campaign Name Pivot Table */}
+            <div className="w-[80%] bg-white rounded shadow p-4">
+              <h3 className="font-semibold text-lg mb-2">Campaign Distribution (Pivot Table)</h3>
+              <table className="w-full table-auto border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border px-4 py-2 text-left max-w-[60%]">Campaign Name</th>
+                    <th className="border px-4 py-2 text-left w-[20%]">Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...campaignData]
+                    .sort((a, b) => b.value - a.value)
+                    .map((item: { id: string; value: number }) => (
+                      <tr key={item.id}>
+                        <td className="border px-4 py-2 break-words max-w-[70%]">{item.id}</td>
+                        <td className="border px-4 py-2">{item.value}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
 
     </div>

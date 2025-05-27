@@ -25,7 +25,7 @@ function App() {
           </Link>
 
           <Link
-            to="/page/admosaicmanage"
+            to="/ad-mosaic-manage"
             className="flex items-center justify-center px-6 py-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition duration-200"
           >
             <Puzzle className="text-2xl mr-2" /> {/* Puzzle Icon */}
