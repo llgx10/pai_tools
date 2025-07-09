@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Film, User, Puzzle } from 'lucide-react';
+import { Film } from 'lucide-react';
 
 function App() {
   return (
