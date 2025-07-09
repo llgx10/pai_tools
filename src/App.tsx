@@ -16,7 +16,7 @@ function App() {
             Media Inspector
           </Link>
 
-          <Link
+          {/* <Link
             to="/social-tool"
             className="flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition duration-200"
           >
@@ -30,7 +30,7 @@ function App() {
           >
             <Puzzle className="text-2xl mr-2" /> {/* Puzzle Icon */}
             Ad Mosaic Manage
-          </Link>
+          </Link> */}
         </div>
       </div>
     </div>
