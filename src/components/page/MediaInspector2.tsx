@@ -19,7 +19,6 @@ import {
     Col,
     Typography,
     Dropdown,
-    Space,
     Divider
 } from "antd";
 import { InboxOutlined, InfoCircleOutlined, EyeOutlined } from "@ant-design/icons";
