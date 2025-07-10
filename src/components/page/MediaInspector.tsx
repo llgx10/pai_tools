@@ -257,8 +257,8 @@ const MediaInspector: React.FC = () => {
           const imageBitmap = await createImageBitmap(blob);
           const { width: originalWidth, height: originalHeight } = imageBitmap;
 
-          const maxWidth = 100;
-          const maxHeight = 60;
+          const maxWidth = 300;
+          const maxHeight = 500;
 
           let displayWidth = maxWidth;
           let displayHeight = (originalHeight / originalWidth) * maxWidth;
