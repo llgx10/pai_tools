@@ -268,6 +268,7 @@ const MediaInspector: React.FC = () => {
             displayWidth = (originalWidth / originalHeight) * maxHeight;
           }
 
+          
           const buffer = await blob.arrayBuffer();
           const extension = isVideo ? "jpeg" : mediaUrl.endsWith(".png") ? "png" : "jpeg";
 
