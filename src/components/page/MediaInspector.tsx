@@ -248,23 +248,41 @@ const MediaInspector: React.FC = () => {
           let blob: Blob;
           const isVideo = mediaUrl.match(/\.(mp4|webm|ogg)$/i);
           if (isVideo) {
-            blob = await getVideoThumbnail(mediaUrl);
+            blob = await getVideoThumbnail(mediaUrl); // should return JPEG blob
           } else {
             const res = await fetch(mediaUrl);
             blob = await res.blob();
           }
 
+          const imageBitmap = await createImageBitmap(blob);
+          const { width: originalWidth, height: originalHeight } = imageBitmap;
+
+          const maxWidth = 100;
+          const maxHeight = 60;
+
+          let displayWidth = maxWidth;
+          let displayHeight = (originalHeight / originalWidth) * maxWidth;
+
+          if (displayHeight > maxHeight) {
+            displayHeight = maxHeight;
+            displayWidth = (originalWidth / originalHeight) * maxHeight;
+          }
+
           const buffer = await blob.arrayBuffer();
           const extension = isVideo ? "jpeg" : mediaUrl.endsWith(".png") ? "png" : "jpeg";
+
           const imageId = workbook.addImage({ buffer, extension });
 
           const colIndex = headers.length;
-          worksheet.getColumn(colIndex + 1).width = 18;
-          worksheet.getRow(dataRow.number).height = 45;
+          worksheet.getColumn(colIndex + 1).width = displayWidth / 7; // ExcelJS column width ≈ pixels / 7
+          worksheet.getRow(dataRow.number).height = displayHeight * 0.75; // ExcelJS row height ≈ pixels / 0.75
 
           worksheet.addImage(imageId, {
             tl: { col: colIndex, row: dataRow.number - 1 },
-            ext: { width: 100, height: 60 },
+            ext: {
+              width: displayWidth,
+              height: displayHeight,
+            },
             editAs: "oneCell",
           });
         } catch (err) {
