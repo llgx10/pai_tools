@@ -574,7 +574,7 @@ const MediaInspector: React.FC = () => {
           <input
             type="text"
             className="w-full border border-gray-300 rounded-full px-4 py-2 focus:outline-none"
-            placeholder="Search across all columns and press Enter..."
+            placeholder="Multiple keywords allowed, press Enter to add"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => {
@@ -727,8 +727,8 @@ const MediaInspector: React.FC = () => {
       {fileUploaded && (
         <div className="mt-4 flex flex-col items-center gap-2 w-full">
           {/* Dropdown for selecting export mode */}
-          <div className="mb-2">
-            <label className="mr-2 font-medium text-gray-700">Export Option:</label>
+          <div className="mb-2 flex items-center gap-2">
+            <label className="font-medium text-gray-700">Export Option:</label>
             <select
               value={exportMode}
               onChange={(e) => setExportMode(e.target.value as "with-media" | "without-media")}
@@ -737,6 +737,14 @@ const MediaInspector: React.FC = () => {
               <option value="without-media">Without Media</option>
               <option value="with-media">With Media</option>
             </select>
+
+            {/* Tooltip next to dropdown */}
+            <div className="relative group">
+              <span className="text-s text-gray-500 cursor-help">💡</span>
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-64 p-2 rounded bg-gray-800 text-white text-xs shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                Choose "With Media" to embed media files in the exported Excel
+              </div>
+            </div>
           </div>
 
           {/* Export button */}
