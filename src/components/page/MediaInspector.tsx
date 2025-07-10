@@ -29,6 +29,9 @@ const MediaInspector: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<number>(0);
   const [exportMode, setExportMode] = useState<"with-media" | "without-media">("without-media");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchKeywords, setSearchKeywords] = useState<string[]>([]);
+
 
 
 
@@ -90,11 +93,23 @@ const MediaInspector: React.FC = () => {
     ? ((faultyImpressions / totalImpressions) * 100).toFixed(2)
     : null;
 
+  const keywordFiltered = visibleData
+    .map((row, originalIndex) => ({ row, originalIndex }))
+    .filter(({ row }) => {
+      const searchableText = Object.values(row)
+        .filter((v) => typeof v === "string" || typeof v === "number")
+        .join(" ")
+        .toLowerCase();
+
+      return searchKeywords.every((keyword) =>
+        searchableText.includes(keyword.toLowerCase())
+      );
+    });
+
   const filteredData = filterFaulty
-    ? visibleData
-      .map((row, originalIndex) => ({ row, originalIndex }))
-      .filter(({ row }) => row.isFaulty)
-    : visibleData.map((row, originalIndex) => ({ row, originalIndex }));
+    ? keywordFiltered.filter(({ row }) => row.isFaulty)
+    : keywordFiltered;
+
 
   const sortedData = [...filteredData];
 
@@ -268,7 +283,7 @@ const MediaInspector: React.FC = () => {
             displayWidth = (originalWidth / originalHeight) * maxHeight;
           }
 
-          
+
           const buffer = await blob.arrayBuffer();
           const extension = isVideo ? "jpeg" : mediaUrl.endsWith(".png") ? "png" : "jpeg";
 
@@ -526,7 +541,66 @@ const MediaInspector: React.FC = () => {
         </div>
       )}
 
+      <div className="w-full mb-4">
+        <div className="w-full flex flex-wrap items-center gap-2 mb-2">
+          {searchKeywords.map((keyword, idx) => (
+            <span
+              key={idx}
+              className="bg-blue-100 text-blue-800 text-sm font-medium px-2 py-1 rounded-full flex items-center"
+            >
+              {keyword}
+              <button
+                onClick={() =>
+                  setSearchKeywords(searchKeywords.filter((k) => k !== keyword))
+                }
+                className="ml-1 text-blue-500 hover:text-red-500"
+              >
+                ✕
+              </button>
+            </span>
+          ))}
 
+          {/* ✅ Clear All Button */}
+          {searchKeywords.length > 0 && (
+            <button
+              onClick={() => setSearchKeywords([])}
+              className="ml-2 text-sm text-red-600 hover:underline"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2 w-full">
+          <input
+            type="text"
+            className="w-full border border-gray-300 rounded-full px-4 py-2 focus:outline-none"
+            placeholder="Search across all columns and press Enter..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && searchInput.trim()) {
+                const trimmed = searchInput.trim();
+                if (!searchKeywords.includes(trimmed)) {
+                  setSearchKeywords([...searchKeywords, trimmed]);
+                }
+                setSearchInput("");
+              }
+            }}
+          />
+          <button
+            onClick={() => {
+              const trimmed = searchInput.trim();
+              if (trimmed && !searchKeywords.includes(trimmed)) {
+                setSearchKeywords([...searchKeywords, trimmed]);
+              }
+              setSearchInput("");
+            }}
+            className="text-blue-600 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200"
+          >
+            🔍
+          </button>
+        </div>
+      </div>
       <div className="w-[100%] max-h-[1360px] overflow-auto border rounded" ref={containerRef}>
         {filterFaulty && filteredData.length === 0 && (
           <div className="p-4 text-center text-gray-500">No faulty rows found.</div>
