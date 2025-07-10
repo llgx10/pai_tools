@@ -246,7 +246,6 @@ const MediaInspectorV2: React.FC = () => {
                         ? r.isFaulty
                         : ["true", "yes", "1"].includes(String(r.isFaulty).toLowerCase()),
                 }));
-                const keys = Object.keys(withMedia[0] || {}).filter((k) => !["media", "remark", "isFaulty"].includes(k));
                 setAllData(withMedia);
                 setVisibleData(withMedia.slice(0, CHUNK_SIZE));
                 setCurrentChunk(1);
@@ -441,6 +440,9 @@ const MediaInspectorV2: React.FC = () => {
                 </Row>
             )}
             <Row gutter={8} style={{ marginBottom: 20 }}>
+                <Col>
+
+                </Col>
                 <Col flex="auto">
                     <Search
                         placeholder="Enter keyword, press Enter"
@@ -520,6 +522,16 @@ const MediaInspectorV2: React.FC = () => {
                     >
                         <Button icon={<EyeOutlined />}>Column Display</Button>
                     </Dropdown>
+                </Col>
+            </Row>
+            <Row gutter={8} style={{ marginBottom: 16 }}>
+                <Col>
+                    <Checkbox
+                        checked={filterFaulty}
+                        onChange={(e) => setFilterFaulty(e.target.checked)}
+                    >
+                        Show Only Faulty
+                    </Checkbox>
                 </Col>
             </Row>
             <div style={{ height: "80vh", display: "flex", flexDirection: "column", padding: 16 }}>
