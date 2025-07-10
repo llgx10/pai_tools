@@ -16,21 +16,13 @@ function App() {
             Media Inspector
           </Link>
 
-          {/* <Link
-            to="/social-tool"
+          <Link
+            to="/media-inspector2"
             className="flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition duration-200"
           >
-            <User className="text-2xl mr-2" />
-            Social Tool Data
+            <Film className="text-2xl mr-2" />
+            Media Inspector v2
           </Link>
-
-          <Link
-            to="/ad-mosaic-manage"
-            className="flex items-center justify-center px-6 py-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition duration-200"
-          >
-            <Puzzle className="text-2xl mr-2" /> 
-            Ad Mosaic Manage
-          </Link> */}
         </div>
       </div>
     </div>

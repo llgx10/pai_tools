@@ -12,6 +12,7 @@
   "dependencies": {
     "@google-cloud/bigquery": "^7.9.3",
     "@nivo/pie": "^0.94.0",
+    "antd": "^5.26.4",
     "axios": "^1.8.4",
     "cookie-session": "^2.1.0",
     "cors": "^2.8.5",
