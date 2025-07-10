@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { saveAs } from 'file-saver';
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
+import ExcelJS from "exceljs";
+
 
 type RowData = {
   [key: string]: any;
@@ -20,9 +22,15 @@ const MediaInspector: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterFaulty, setFilterFaulty] = useState(false)
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const baseKeys = Object.keys(visibleData[0] || {}).filter(
     (key) => !["media", "remark", "isFaulty"].includes(key)
   );
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<number>(0);
+  const [exportMode, setExportMode] = useState<"with-media" | "without-media">("without-media");
+
+
 
 
 
@@ -88,6 +96,49 @@ const MediaInspector: React.FC = () => {
       .filter(({ row }) => row.isFaulty)
     : visibleData.map((row, originalIndex) => ({ row, originalIndex }));
 
+  const sortedData = [...filteredData];
+
+  if (sortConfig) {
+    sortedData.sort((a, b) => {
+      const aValue = a.row[sortConfig.key] ?? "";
+      const bValue = b.row[sortConfig.key] ?? "";
+
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  }
+
+
+
+  const getVideoThumbnail = (videoUrl: string): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement("video");
+      video.crossOrigin = "anonymous";
+      video.src = videoUrl;
+      video.currentTime = 1; // Seek to 1 second
+      video.muted = true;
+      video.playsInline = true;
+
+      video.onloadeddata = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("Failed to extract thumbnail blob"));
+          }, "image/jpeg");
+        } else {
+          reject(new Error("Canvas context not available"));
+        }
+      };
+
+      video.onerror = (err) => reject(err);
+    });
+  };
   const handleFaultyChange = (originalIndex: number) => {
     const currentValue = allData[originalIndex]?.isFaulty ?? false;
     updateRow(originalIndex, "isFaulty", !currentValue);
@@ -166,18 +217,81 @@ const MediaInspector: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (allData.length === 0) return;
 
-    const exportData = allData.map(({ media, ...rest }) => rest);
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Media Data");
-    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([wbout], { type: "application/octet-stream" });
-    const exportFileName = fileName?.replace(/\.(xlsx|xls|csv)$/i, "") || "exported_data";
-    saveAs(blob, `${exportFileName}_remarks.xlsx`);
+    setIsExporting(true);
+    setExportProgress(0);
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Media Data");
+
+    const headers = Object.keys(allData[0]).filter((key) => key !== "media");
+    if (exportMode === "with-media") {
+      worksheet.columns = [
+        ...headers.map((key) => ({ header: key, key })),
+        { header: "Media Preview", key: "thumbnail" },
+      ];
+    } else {
+      worksheet.columns = headers.map((key) => ({ header: key, key }));
+    }
+
+    for (let i = 0; i < allData.length; i++) {
+      const row = allData[i];
+      const dataRow = worksheet.addRow(headers.map((k) => row[k]));
+
+      if (exportMode === "with-media") {
+        const mediaUrl = row.media;
+        if (!mediaUrl) continue;
+
+        try {
+          let blob: Blob;
+          const isVideo = mediaUrl.match(/\.(mp4|webm|ogg)$/i);
+          if (isVideo) {
+            blob = await getVideoThumbnail(mediaUrl);
+          } else {
+            const res = await fetch(mediaUrl);
+            blob = await res.blob();
+          }
+
+          const buffer = await blob.arrayBuffer();
+          const extension = isVideo ? "jpeg" : mediaUrl.endsWith(".png") ? "png" : "jpeg";
+          const imageId = workbook.addImage({ buffer, extension });
+
+          const colIndex = headers.length;
+          worksheet.getColumn(colIndex + 1).width = 18;
+          worksheet.getRow(dataRow.number).height = 45;
+
+          worksheet.addImage(imageId, {
+            tl: { col: colIndex, row: dataRow.number - 1 },
+            ext: { width: 100, height: 60 },
+            editAs: "oneCell",
+          });
+        } catch (err) {
+          console.error("Error embedding media for row", i + 1, err);
+        }
+      }
+
+      // Update progress
+      setExportProgress(Math.round(((i + 1) / allData.length) * 100));
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    const exportFileName =
+      fileName?.replace(/\.(xlsx|xls|csv)$/i, "") || "exported_data";
+
+    const suffix = exportMode === "with-media" ? "_with_media" : "";
+    saveAs(blob, `${exportFileName}${suffix}.xlsx`);
+
+    setIsExporting(false);
+    setExportProgress(0);
   };
+
+
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -237,20 +351,20 @@ const MediaInspector: React.FC = () => {
   };
 
   const updateRow = (
-  globalIndex: number,
-  field: string,
-  value: any
-) => {
-  const updatedAll = [...allData];
-  updatedAll[globalIndex] = {
-    ...updatedAll[globalIndex],
-    [field]: value,
-  };
-  setAllData(updatedAll);
+    globalIndex: number,
+    field: string,
+    value: any
+  ) => {
+    const updatedAll = [...allData];
+    updatedAll[globalIndex] = {
+      ...updatedAll[globalIndex],
+      [field]: value,
+    };
+    setAllData(updatedAll);
 
-  const chunkSize = currentChunk * CHUNK_SIZE;
-  setVisibleData(updatedAll.slice(0, chunkSize));
-};
+    const chunkSize = currentChunk * CHUNK_SIZE;
+    setVisibleData(updatedAll.slice(0, chunkSize));
+  };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -333,7 +447,7 @@ const MediaInspector: React.FC = () => {
       <h2 className="text-xl font-bold mb-4">Upload Excel or CSV File</h2>
 
       {!fileUploaded && (
-        <div className="flex justify-center items-center min-h-[400px]">
+        <div className="flex justify-center items-center min-h-[500px]">
           <div
             className="flex flex-col justify-center items-center p-6 border-2 border-dashed border-blue-500 rounded cursor-pointer w-full max-w-[600px] text-center"
             onDragOver={handleDragOver}
@@ -394,8 +508,7 @@ const MediaInspector: React.FC = () => {
       )}
 
 
-      <div className="overflow-auto max-h-[1080px] max-w-full border rounded" ref={containerRef}>
-        {/* Filter summary or message */}
+      <div className="w-[100%] max-h-[1360px] overflow-auto border rounded" ref={containerRef}>
         {filterFaulty && filteredData.length === 0 && (
           <div className="p-4 text-center text-gray-500">No faulty rows found.</div>
         )}
@@ -404,20 +517,42 @@ const MediaInspector: React.FC = () => {
           <thead className="bg-gray-100 text-left sticky top-0 z-10">
             <tr>
               <th className="border px-3 py-2 w-[80px] text-center">Index</th>
-              {baseKeys.map((key, index) => (
-                <th
-                  key={key}
-                  className="border px-3 py-2"
-                  style={{
-                    width: index === 0 ? "150px" : "200px",
-                    wordWrap: "break-word",
-                  }}
-                >
-                  {key}
-                </th>
-              ))}
-              <th className="border px-3 py-2" style={{ width: "250px" }}>Media</th>
-              <th className="border px-3 py-2" style={{ width: "200px" }}>Remark</th>
+              {baseKeys.map((key, index) => {
+                const isActive = sortConfig?.key === key;
+                const sortIcon = isActive
+                  ? sortConfig.direction === "asc" ? "▲" : "▼"
+                  : "⇅";
+
+                return (
+                  <th
+                    key={key}
+                    onClick={() => {
+                      setSortConfig((prev) => {
+                        if (!prev || prev.key !== key) {
+                          return { key, direction: "asc" };
+                        } else if (prev.direction === "asc") {
+                          return { key, direction: "desc" };
+                        } else {
+                          return null;
+                        }
+                      });
+                    }}
+                    className="border px-3 py-2 cursor-pointer hover:bg-gray-200 select-none"
+                    style={{
+                      width: index === 0 ? "150px" : "200px",
+                      wordWrap: "break-word",
+                    }}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span>{key}</span>
+                      <span className="text-xs text-gray-500 ml-2">{sortIcon}</span>
+                    </div>
+                  </th>
+                );
+              })}
+
+              <th className="border px-3 py-2 w-1/6">Media</th>
+              <th className="border px-3 py-2 w-1/7">Remark</th>
               <th className="border px-3 py-2 text-center align-middle w-[150px]">
                 <div className="flex items-center justify-center space-x-1">
                   <span>Is Faulty</span>
@@ -441,7 +576,7 @@ const MediaInspector: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              filteredData.map((data, idx) => (
+              sortedData.map((data, idx) => (
                 <tr key={idx} className="hover:bg-gray-50">
                   {/* Index column */}
                   <td className="border px-3 py-2 text-center">{data.originalIndex + 1}</td>
@@ -464,11 +599,11 @@ const MediaInspector: React.FC = () => {
                     </td>
                   ))}
 
-                  <td className="border p-0 h-40" style={{ width: "10px" }}>
+                  <td className="border p-0 h-40 w-1/6">
                     {renderMedia(data.row.media)}
                   </td>
 
-                  <td className="border px-3 py-2" style={{ width: "150px" }}>
+                  <td className="border px-3 py-2 w-1/7">
                     <input
                       type="text"
                       value={data.row.remark ?? ""}
@@ -484,7 +619,7 @@ const MediaInspector: React.FC = () => {
                       type="checkbox"
                       checked={data.row.isFaulty ?? false}
                       onChange={() => handleFaultyChange(data.originalIndex)}
-                      className="form-checkbox"
+                      className="form-checkbox w-5 h-5 text-blue-600"
                     />
                   </td>
                 </tr>
@@ -495,17 +630,47 @@ const MediaInspector: React.FC = () => {
         </table>
       </div>
 
+
       {fileUploaded && (
-        <div className="mt-4 flex justify-center">
+        <div className="mt-4 flex flex-col items-center gap-2 w-full">
+          {/* Dropdown for selecting export mode */}
+          <div className="mb-2">
+            <label className="mr-2 font-medium text-gray-700">Export Option:</label>
+            <select
+              value={exportMode}
+              onChange={(e) => setExportMode(e.target.value as "with-media" | "without-media")}
+              className="border rounded px-2 py-1"
+            >
+              <option value="without-media">Without Media</option>
+              <option value="with-media">With Media</option>
+            </select>
+          </div>
+
+          {/* Export button */}
           <button
             onClick={handleExport}
-            className="px-6 py-2 bg-green-600 text-white font-semibold rounded hover:bg-green-700"
+            className="px-6 py-2 bg-green-600 text-white font-semibold rounded hover:bg-green-700 disabled:opacity-50"
+            disabled={isExporting}
           >
-            Export File
+            {isExporting ? "Exporting..." : "Export File"}
           </button>
+
+          {/* Progress bar */}
+          {isExporting && (
+            <div className="w-full max-w-md mt-2">
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div
+                  className="bg-green-500 h-3 transition-all duration-200"
+                  style={{ width: `${exportProgress}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-600 mt-1 text-center">
+                Embedding media... {exportProgress}%
+              </p>
+            </div>
+          )}
         </div>
       )}
-
 
       {fileUploaded && (
         <div className="mt-4 flex flex-col gap-6 w-full">
