@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
@@ -199,7 +199,12 @@ const MediaInspectorV2: React.FC = () => {
                     : 0;
         })
         : filteredData;
+
     const displayedData = sortedData.slice(0, currentChunk * CHUNK_SIZE);
+    const sortedDataRef = useRef(sortedData);
+    useEffect(() => {
+        sortedDataRef.current = sortedData;
+    }, [sortedData]);
 
 
     // --- Handlers & File / Export Logic ---
@@ -312,25 +317,45 @@ const MediaInspectorV2: React.FC = () => {
             />
         ) : null;
 
-    const handleScroll = () => {
+    const handleScroll = useCallback(() => {
         const container = containerRef.current;
         if (!container) return;
 
         const nearBottom =
             container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
 
-        if (nearBottom && currentChunk * CHUNK_SIZE < sortedData.length) {
+        if (nearBottom && currentChunk * CHUNK_SIZE < sortedDataRef.current.length) {
             setCurrentChunk((prev) => prev + 1);
         }
-    };
+    }, [currentChunk]);
+
+
 
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
+        const handleDynamicScroll = () => {
+            const nearBottom =
+                container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
+
+            if (nearBottom && currentChunk * CHUNK_SIZE < sortedDataRef.current.length) {
+                setCurrentChunk((prev) => prev + 1);
+            }
+        };
+
         container.addEventListener("scroll", handleScroll);
+        handleDynamicScroll(); // <-- call immediately in case scroll doesn't happen yet
+
         return () => container.removeEventListener("scroll", handleScroll);
-    }, [sortedData.length, currentChunk]);
+    }, [handleScroll, sortedData]);
+    useEffect(() => {
+        const totalNeeded = Math.ceil(sortedData.length / CHUNK_SIZE);
+        if (currentChunk < totalNeeded) {
+            setCurrentChunk((prev) => prev + 1);
+        }
+    }, [sortedData]);
+
 
     // --- Columns for Table ---
     const columns = [
