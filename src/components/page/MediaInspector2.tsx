@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import ExcelJS from "exceljs";
+import throttle from 'lodash/throttle';
+
+
 
 import {
     Upload,
@@ -19,7 +22,8 @@ import {
     Col,
     Typography,
     Dropdown,
-    Divider
+    Divider,
+    Spin
 } from "antd";
 import { InboxOutlined, InfoCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import "antd/dist/reset.css";
@@ -126,6 +130,7 @@ const MediaInspectorV2: React.FC = () => {
 
 
 
+
     const [filterFaulty, setFilterFaulty] = useState(false);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
@@ -140,6 +145,7 @@ const MediaInspectorV2: React.FC = () => {
 
     const [advertiserData, setAdvertiserData] = useState<{ id: string; value: number }[]>([]);
     const [campaignData, setCampaignData] = useState<{ id: string; value: number }[]>([]);
+    const [isLazyLoading, setIsLazyLoading] = useState(false);
 
 
     // --- Derived Data & Effects ---
@@ -200,12 +206,22 @@ const MediaInspectorV2: React.FC = () => {
         })
         : filteredData;
 
-    const displayedData = sortedData.slice(0, currentChunk * CHUNK_SIZE);
+    const displayedData = useMemo(
+        () => sortedData.slice(0, currentChunk * CHUNK_SIZE),
+        [sortedData, currentChunk]
+    );
+
+
     const sortedDataRef = useRef(sortedData);
     useEffect(() => {
         sortedDataRef.current = sortedData;
     }, [sortedData]);
 
+
+    const currentChunkRef = useRef(currentChunk);
+    useEffect(() => {
+        currentChunkRef.current = currentChunk;
+    }, [currentChunk]);
 
     // --- Handlers & File / Export Logic ---
 
@@ -317,44 +333,47 @@ const MediaInspectorV2: React.FC = () => {
             />
         ) : null;
 
-    const handleScroll = useCallback(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const nearBottom =
-            container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
-
-        if (nearBottom && currentChunk * CHUNK_SIZE < sortedDataRef.current.length) {
-            setCurrentChunk((prev) => prev + 1);
-        }
-    }, [currentChunk]);
-
 
 
     useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
+        const observer = new MutationObserver(() => {
+            const tableBody = document.querySelector('.ant-table-body');
+            if (tableBody) {
+                const handleScroll = throttle(() => {
+                    const nearBottom =
+                        tableBody.scrollTop + tableBody.clientHeight >= tableBody.scrollHeight - 100;
 
-        const handleDynamicScroll = () => {
-            const nearBottom =
-                container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
+                    const maxChunks = Math.ceil(sortedDataRef.current.length / CHUNK_SIZE);
 
-            if (nearBottom && currentChunk * CHUNK_SIZE < sortedDataRef.current.length) {
-                setCurrentChunk((prev) => prev + 1);
+                    if (nearBottom && currentChunkRef.current < maxChunks && !isLazyLoading) {
+                        setIsLazyLoading(true);
+                        setTimeout(() => {
+                            setCurrentChunk((prev) => {
+                                const next = prev + 1;
+                                currentChunkRef.current = next;
+                                return next;
+                            });
+                            setIsLazyLoading(false);
+                        }, 300);
+                    }
+                }, 200);
+
+                tableBody.addEventListener('scroll', handleScroll);
+                observer.disconnect(); // only need to observe once
+
+                return () => {
+                    tableBody.removeEventListener('scroll', handleScroll);
+                };
             }
-        };
+        });
 
-        container.addEventListener("scroll", handleScroll);
-        handleDynamicScroll(); // <-- call immediately in case scroll doesn't happen yet
+        observer.observe(document.body, { childList: true, subtree: true });
+        return () => observer.disconnect();
+    }, []);
 
-        return () => container.removeEventListener("scroll", handleScroll);
-    }, [handleScroll, sortedData]);
-    useEffect(() => {
-        const totalNeeded = Math.ceil(sortedData.length / CHUNK_SIZE);
-        if (currentChunk < totalNeeded) {
-            setCurrentChunk((prev) => prev + 1);
-        }
-    }, [sortedData]);
+
+
+
 
 
     // --- Columns for Table ---
@@ -466,6 +485,7 @@ const MediaInspectorV2: React.FC = () => {
             )}
             <Row gutter={8} style={{ marginBottom: 20 }}>
                 <Col>
+                    <p style={{ marginTop: 8 }}>Loaded: {displayedData.length} / {sortedData.length}</p>
 
                 </Col>
                 <Col flex="auto">
@@ -564,7 +584,8 @@ const MediaInspectorV2: React.FC = () => {
                 <div style={{ flex: 1, overflow: "auto" }} ref={containerRef}>
                     <Table
                         columns={columns}
-                        dataSource={displayedData.map((x, i) => ({ ...x.row, key: i }))}
+                        dataSource={displayedData.map((x) => ({ ...x.row, key: x.row.CREATIVE_URL_SUPPLIER }))}
+                        rowKey="key"
                         pagination={false}
                         sticky
                         scroll={{ y: 'calc(100vh - 300px)' }}
@@ -579,7 +600,13 @@ const MediaInspectorV2: React.FC = () => {
                             }
                         }}
                     />
+                    {isLazyLoading && (
+                        <div style={{ textAlign: "center", padding: 16 }}>
+                            <Spin tip="Loading more..." />
+                        </div>
+                    )}
                 </div>
+
 
                 {/* Export controls */}
                 <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
