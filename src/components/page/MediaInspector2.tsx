@@ -670,7 +670,7 @@ const MediaInspectorV2: React.FC = () => {
                                 {
                                     title: "Count",
                                     dataIndex: "value",
-                                    defaultSortOrder: "descend",
+                                    defaultSortOrder: "ascend",
                                     sorter: (a, b) => b.value - a.value,
                                 },
                             ]}
@@ -690,7 +690,7 @@ const MediaInspectorV2: React.FC = () => {
                                 {
                                     title: "Count",
                                     dataIndex: "value",
-                                    defaultSortOrder: "descend",
+                                    defaultSortOrder: "ascend",
                                     sorter: (a, b) => b.value - a.value,
                                 },
                             ]}
