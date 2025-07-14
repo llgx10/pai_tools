@@ -1,9 +1,9 @@
-#root {
-  max-width: 1280px;
+/* #root {
+  max-width: 98%;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
-}
+} */
 
 .logo {
   height: 6em;
@@ -40,3 +40,13 @@
 .read-the-docs {
   color: #888;
 }
+
+/* .react-resizable-handle {
+  position: absolute;
+  right: -5px;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  cursor: col-resize;
+  z-index: 1;
+} */

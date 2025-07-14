@@ -163,53 +163,84 @@ const MediaInspectorV2: React.FC = () => {
     const impressionPercentage = totalImpressions ? ((faultyImpressions / totalImpressions) * 100).toFixed(2) : null;
 
     useEffect(() => {
+        if (!allData.length) return;
+
         const adv: Record<string, number> = {};
         const cmp: Record<string, number> = {};
         allData.forEach((r) => {
-            r.ADVERTISER_NAME && (adv[r.ADVERTISER_NAME] = (adv[r.ADVERTISER_NAME] || 0) + 1);
-            r.CREATIVE_CAMPAIGN_NAME && (cmp[r.CREATIVE_CAMPAIGN_NAME] = (cmp[r.CREATIVE_CAMPAIGN_NAME] || 0) + 1);
+            r?.ADVERTISER_NAME && (adv[r.ADVERTISER_NAME] = (adv[r.ADVERTISER_NAME] || 0) + 1);
+            r?.CREATIVE_CAMPAIGN_NAME && (cmp[r.CREATIVE_CAMPAIGN_NAME] = (cmp[r.CREATIVE_CAMPAIGN_NAME] || 0) + 1);
         });
         setAdvertiserData(Object.entries(adv).map(([id, value]) => ({ id, value })));
         setCampaignData(Object.entries(cmp).map(([id, value]) => ({ id, value })));
     }, [allData]);
 
     // Filtering & Sorting
-    const keywordFiltered = allData
-        .map((row, idx) => ({ row, originalIndex: idx }))
-        .filter(({ row }) =>
-            searchKeywords.every((kw) =>
-                Object.values(row)
-                    .filter((v) => typeof v === "string" || typeof v === "number")
-                    .join(" ")
-                    .toLowerCase()
-                    .includes(kw.toLowerCase())
-            )
-        );
+    // const keywordFiltered = allData
+    //     .map((row, idx) => ({ row, originalIndex: idx }))
+    //     .filter(({ row }) =>
+    //         searchKeywords.every((kw) =>
+    //             Object.values(row)
+    //                 .filter((v) => typeof v === "string" || typeof v === "number")
+    //                 .join(" ")
+    //                 .toLowerCase()
+    //                 .includes(kw.toLowerCase())
+    //         )
+    //     );
 
     const filteredData = filterFaulty
-        ? keywordFiltered.filter(({ row }) => row.isFaulty)
-        : keywordFiltered;
+        ? allData.filter((row) => row.isFaulty)
+        : allData;
+
+    const keywordFiltered = filteredData.filter((row) =>
+        searchKeywords.every((kw) =>
+            Object.values(row)
+                .filter((v) => typeof v === "string" || typeof v === "number")
+                .join(" ")
+                .toLowerCase()
+                .includes(kw.toLowerCase())
+        )
+    );
 
     const sortedData = sortConfig
-        ? [...filteredData].sort((a, b) => {
-            const av = a.row[sortConfig.key] ?? "";
-            const bv = b.row[sortConfig.key] ?? "";
-            return av < bv
-                ? sortConfig.direction === "asc"
-                    ? -1
-                    : 1
-                : av > bv
+        ? [...filteredData]
+            .filter((r) => r && typeof r === "object") 
+            .sort((a, b) => {
+                const av = a?.[sortConfig.key] ?? "";
+                const bv = b?.[sortConfig.key] ?? "";
+                return av < bv
                     ? sortConfig.direction === "asc"
-                        ? 1
-                        : -1
-                    : 0;
-        })
+                        ? -1
+                        : 1
+                    : av > bv
+                        ? sortConfig.direction === "asc"
+                            ? 1
+                            : -1
+                        : 0;
+            })
         : filteredData;
 
-    const displayedData = useMemo(
-        () => sortedData.slice(0, currentChunk * CHUNK_SIZE),
-        [sortedData, currentChunk]
-    );
+    const displayedData = useMemo(() => {
+        const data = [...keywordFiltered];
+
+        if (sortConfig) {
+            data.sort((a, b) => {
+                const av = a?.[sortConfig.key] ?? "";
+                const bv = b?.[sortConfig.key] ?? "";
+
+                // Handle number sort
+                if (!isNaN(av) && !isNaN(bv)) {
+                    return sortConfig.direction === "asc" ? av - bv : bv - av;
+                }
+
+                // String sort (locale-aware)
+                const result = av.toString().localeCompare(bv.toString(), undefined, { numeric: true });
+                return sortConfig.direction === "asc" ? result : -result;
+            });
+        }
+
+        return data.slice(0, currentChunk * CHUNK_SIZE);
+    }, [keywordFiltered, sortConfig, currentChunk]);
 
 
     const sortedDataRef = useRef(sortedData);
@@ -244,9 +275,10 @@ const MediaInspectorV2: React.FC = () => {
         v.onerror = rej;
     });
 
-    const updateRow = (idx: number, field: string, val: any) => {
-        const copy = [...allData];
-        copy[idx] = { ...copy[idx], [field]: val };
+    const updateRow = (key: string, field: string, val: any) => {
+        const copy = allData.map((row) =>
+            row.CREATIVE_URL_SUPPLIER === key ? { ...row, [field]: val } : row
+        );
         setAllData(copy);
         setVisibleData(copy.slice(0, currentChunk * CHUNK_SIZE));
     };
@@ -259,8 +291,9 @@ const MediaInspectorV2: React.FC = () => {
         reader.onload = (e) => {
             const bstr = e.target?.result as string | ArrayBuffer;
             const parse = (json: RowData[]) => {
-                const withMedia = json.map((r) => ({
+                const withMedia = json.map((r, idx) => ({
                     ...r,
+                    id: `row-${idx}`,
                     media: r.CREATIVE_URL_SUPPLIER,
                     remark: r.remark ?? "",
                     isFaulty: typeof r.isFaulty === "boolean"
@@ -379,30 +412,30 @@ const MediaInspectorV2: React.FC = () => {
     // --- Columns for Table ---
     const columns = [
         { title: "Index", width: 80, render: (_: any, __: any, idx: number) => idx + 1 },
-        ...getSortedColoredColumns(Object.keys(sortedData[0]?.row || {})).filter(col => visibleColumns.includes(col.key))
-        ,
+        ...getSortedColoredColumns(baseKeys).filter(col => visibleColumns.includes(col.key)),
         {
             title: "Media",
             dataIndex: "media",
             width: "20%",
             onCell: () => ({
                 style: {
-                    padding: 0,              // Optional: remove extra padding
-                    height: "100%",          // Ensure full height
-                    verticalAlign: "middle", // Center media vertically
+                    padding: 0,
+                    height: "100%",
+                    verticalAlign: "middle",
                 },
             }),
-            render: (_: any, __: any, idx: number) =>
-                renderMedia(sortedData[idx].row.media),
+            render: (_: any, record: any) => renderMedia(record.media),
         },
         {
             title: "Remark",
             dataIndex: "remark",
             width: 180,
-            render: (_: any, __: any, idx: number) => (
+            render: (_: any, record: any) => (
                 <Input
-                    value={sortedData[idx].row.remark}
-                    onChange={(e) => updateRow(sortedData[idx].originalIndex, "remark", e.target.value)}
+                    value={record.remark}
+                    onChange={(e) =>
+                        updateRow(record.CREATIVE_URL_SUPPLIER, "remark", e.target.value)
+                    }
                 />
             ),
         },
@@ -410,18 +443,17 @@ const MediaInspectorV2: React.FC = () => {
             title: "Is Faulty",
             dataIndex: "isFaulty",
             width: 90,
-            render: (_: any, __: any, idx: number) => (
-                <div style={{ transform: "scale(1.5)", transformOrigin: "top left" }}>
-                    <Checkbox
-                        checked={sortedData[idx].row.isFaulty}
-                        onChange={() =>
-                            updateRow(sortedData[idx].originalIndex, "isFaulty", !sortedData[idx].row.isFaulty)
-                        }
-                    />
-                </div>
+            render: (_: any, record: any) => (
+                <Checkbox
+                    checked={record.isFaulty}
+                    onChange={() =>
+                        updateRow(record.CREATIVE_URL_SUPPLIER, "isFaulty", !record.isFaulty)
+                    }
+                />
             ),
         },
     ];
+
     const columnOptions = baseKeys.map((key) => ({ label: key, value: key }));
 
     const columnVisibilityMenu = (
@@ -550,7 +582,7 @@ const MediaInspectorV2: React.FC = () => {
 
                 <Col>
                     <Dropdown
-                        overlay={
+                        dropdownRender={() => (
                             <div
                                 style={{
                                     background: "white",
@@ -561,7 +593,7 @@ const MediaInspectorV2: React.FC = () => {
                             >
                                 {columnVisibilityMenu}
                             </div>
-                        }
+                        )}
                         trigger={["click"]}
                         placement="bottomRight"
                     >
@@ -584,8 +616,8 @@ const MediaInspectorV2: React.FC = () => {
                 <div style={{ flex: 1, overflow: "auto" }} ref={containerRef}>
                     <Table
                         columns={columns}
-                        dataSource={displayedData.map((x) => ({ ...x.row, key: x.row.CREATIVE_URL_SUPPLIER }))}
-                        rowKey="key"
+                        dataSource={displayedData}
+                        rowKey="id"
                         pagination={false}
                         sticky
                         scroll={{ y: 'calc(100vh - 300px)' }}

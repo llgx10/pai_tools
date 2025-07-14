@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
+import './App.css';
 import 'antd/dist/reset.css'; // Import Ant Design styles
 import App from './App';
 import AdMosaicManage from './components/page/AdMosaicManage';
