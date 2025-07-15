@@ -23,10 +23,12 @@ import {
     Typography,
     Dropdown,
     Divider,
-    Spin
+    Spin,
+    App,
+    ConfigProvider,
+    theme
 } from "antd";
 import { InboxOutlined, InfoCircleOutlined, EyeOutlined } from "@ant-design/icons";
-import "antd/dist/reset.css";
 
 type RowData = { [key: string]: any; media?: string; remark?: string };
 
@@ -34,6 +36,7 @@ const CHUNK_SIZE = 20;
 const { Dragger } = Upload;
 const { Search } = Input;
 const { Title } = Typography;
+
 
 const columnGroups: Record<string, string[]> = {
     advertiser: [
@@ -72,7 +75,19 @@ const columnGroups: Record<string, string[]> = {
     metrics: ["IMPRESSIONS", "SPEND"],
 };
 
-const groupColors: Record<string, string> = {
+const groupColorsDark: Record<string, string> = {
+    country: "#ff5054",
+    advertiser: "#2eab59",
+    publisher: "#ff7c44",
+    creative: "#167dff",
+    occurrence: "#84074b",
+    youtube: "#697c21",
+    social: "#fe6d70",
+    metrics: "#104a5e",
+};
+
+
+const groupColorsLight: Record<string, string> = {
     country: "#FFF5F5",
     advertiser: "#F0FFF4",
     publisher: "#F0F9FF",
@@ -82,23 +97,27 @@ const groupColors: Record<string, string> = {
     social: "#FDF2FF",
     metrics: "#F9F9F9",
 };
-const getSortedColoredColumns = (allKeys: string[]) => {
-    const sortedColumns: any[] = [];
+const getSortedColoredColumns = (allKeys: string[], themeMode: 'light' | 'dark') => {
+    const groupColors = themeMode === 'dark' ? groupColorsDark : groupColorsLight;
 
+    const sortedColumns: any[] = [];
+    const usedKeys = new Set<string>();
+
+    // Go through grouped columns first
     for (const [group, keys] of Object.entries(columnGroups)) {
         for (const key of keys) {
             if (allKeys.includes(key)) {
+                usedKeys.add(key);
                 sortedColumns.push({
                     title: key,
                     dataIndex: key,
                     key,
-
-                    sorter: true, // ✅ Enable sorting for all columns
+                    sorter: true,
                     onCell: () => ({
                         style: {
                             backgroundColor: groupColors[group],
-                            whiteSpace: 'normal',   // ✅ Allow line wrapping
-                            wordBreak: 'break-word' // ✅ Prevent long words from overflowing
+                            whiteSpace: 'normal',
+                            wordBreak: 'break-word',
                         },
                     }),
                 });
@@ -106,15 +125,32 @@ const getSortedColoredColumns = (allKeys: string[]) => {
         }
     }
 
+    // Add ungrouped columns to a separate "Other" section
+    for (const key of allKeys) {
+        if (!usedKeys.has(key)) {
+            sortedColumns.push({
+                title: key,
+                dataIndex: key,
+                key,
+                sorter: true,
+                onCell: () => ({
+                    style: {
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
+                    },
+                }),
+            });
+        }
+    }
+
     return sortedColumns;
 };
-
 
 
 const MediaInspectorV2: React.FC = () => {
     // --- State ---
     const [allData, setAllData] = useState<RowData[]>([]);
-    const [visibleData, setVisibleData] = useState<RowData[]>([]);
+    // const [visibleData, setVisibleData] = useState<RowData[]>([]);
     const [currentChunk, setCurrentChunk] = useState(1);
     const [fileName, setFileName] = useState<string | null>(null);
     const [fileUploaded, setFileUploaded] = useState(false);
@@ -126,6 +162,9 @@ const MediaInspectorV2: React.FC = () => {
         "SOCIAL_CAMPAIGN_TEXT",
         "CREATIVE_URL_SUPPLIER"
     ]);
+    const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
+
+
 
 
 
@@ -134,8 +173,17 @@ const MediaInspectorV2: React.FC = () => {
     const [filterFaulty, setFilterFaulty] = useState(false);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
-    const baseKeys = Object.keys(visibleData[0] || {}).filter((key) => !["media", "remark", "isFaulty"].includes(key));
-
+    const baseKeys = useMemo(() => {
+        const keys = new Set<string>();
+        allData.forEach(row => {
+            Object.keys(row).forEach(k => {
+                if (!["media", "remark", "isFaulty"].includes(k)) {
+                    keys.add(k);
+                }
+            });
+        });
+        return Array.from(keys);
+    }, [allData]);
     const [isExporting, setIsExporting] = useState(false);
     const [exportProgress, setExportProgress] = useState<number>(0);
     const [exportMode, setExportMode] = useState<"with-media" | "without-media">("without-media");
@@ -204,7 +252,7 @@ const MediaInspectorV2: React.FC = () => {
 
     const sortedData = sortConfig
         ? [...filteredData]
-            .filter((r) => r && typeof r === "object") 
+            .filter((r) => r && typeof r === "object")
             .sort((a, b) => {
                 const av = a?.[sortConfig.key] ?? "";
                 const bv = b?.[sortConfig.key] ?? "";
@@ -280,7 +328,7 @@ const MediaInspectorV2: React.FC = () => {
             row.CREATIVE_URL_SUPPLIER === key ? { ...row, [field]: val } : row
         );
         setAllData(copy);
-        setVisibleData(copy.slice(0, currentChunk * CHUNK_SIZE));
+        // setVisibleData(copy.slice(0, currentChunk * CHUNK_SIZE));
     };
 
     const handleFileUpload = (file: File) => {
@@ -301,7 +349,7 @@ const MediaInspectorV2: React.FC = () => {
                         : ["true", "yes", "1"].includes(String(r.isFaulty).toLowerCase()),
                 }));
                 setAllData(withMedia);
-                setVisibleData(withMedia.slice(0, CHUNK_SIZE));
+                // setVisibleData(withMedia.slice(0, CHUNK_SIZE));
                 setCurrentChunk(1);
             };
 
@@ -339,7 +387,7 @@ const MediaInspectorV2: React.FC = () => {
                     const ext = blob.type.includes("png") ? "png" : "jpeg";
                     const imgId = wb.addImage({ buffer: buff, extension: ext });
                     ws.getColumn(headers.length + 1).width = 40;
-                    ws.getRow(row.number).height = 80;
+                    ws.getRow(row.number).height = 500;
                     ws.addImage(imgId, { tl: { col: headers.length, row: row.number - 1 }, ext: { width: 300, height: 500 }, editAs: "oneCell" });
                 } catch { }
             }
@@ -410,9 +458,11 @@ const MediaInspectorV2: React.FC = () => {
 
 
     // --- Columns for Table ---
-    const columns = [
-        { title: "Index", width: 80, render: (_: any, __: any, idx: number) => idx + 1 },
-        ...getSortedColoredColumns(baseKeys).filter(col => visibleColumns.includes(col.key)),
+    const dynamicColumns = getSortedColoredColumns(baseKeys, themeMode).filter(col =>
+        visibleColumns.includes(col.key)
+    );
+
+    const fixedColumns = [
         {
             title: "Media",
             dataIndex: "media",
@@ -451,9 +501,14 @@ const MediaInspectorV2: React.FC = () => {
                     }
                 />
             ),
-        },
+        }
     ];
 
+    const columns = [
+        { title: "Index", width: 80, render: (_: any, __: any, idx: number) => idx + 1 },
+        ...dynamicColumns,
+        ...fixedColumns, // ✅ always at the end
+    ];
     const columnOptions = baseKeys.map((key) => ({ label: key, value: key }));
 
     const columnVisibilityMenu = (
@@ -480,230 +535,266 @@ const MediaInspectorV2: React.FC = () => {
     );
 
     return (
-        <div style={{ padding: 24 }}>
-            <Title level={4}>Upload Excel or CSV File</Title>
-            {!fileUploaded && (
-                <Dragger
-                    accept=".xlsx,.xls,.csv"
-                    multiple={false}
-                    beforeUpload={handleDragger}
-                    style={{ marginBottom: 16 }}
-                >
-                    <p style={{ fontSize: 24 }}>
-                        <InboxOutlined />
-                    </p>
-                    <p>Click or drag file to upload</p>
-                </Dragger>
-            )}
+        <ConfigProvider
+            theme={{
+                algorithm: themeMode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+            }}
+        >
+            <App>
+                <div
+                    // style={{
+                    //     padding: 24,
+                    //     minHeight: '100vh',
+                    //     background: token.colorBgBase,
+                    //     color: token.colorText,
+                    //     transition: 'background 0.3s, color 0.3s',
 
-            {fileUploaded && (
-                <Row justify="space-between" style={{ marginBottom: 16 }}>
-                    <Col>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <Button onClick={() => setFileUploaded(false)}>Choose Another</Button>
-                            <span>{fileName}</span>
-                        </div>
-                    </Col>
-                    <Col>
-                        {totalRows > 0 && (
-                            <div style={{ textAlign: "right" }}>
-                                <div><b>Faulty Count:</b> {faultyRows} / {totalRows}</div>
-                                <div><b>% Faulty:</b> {faultyPercentage}%</div>
-                                <div><b>% Impression Faulty:</b> {impressionPercentage ?? "—"}</div>
-                            </div>
-                        )}
-                    </Col>
-                </Row>
-            )}
-            <Row gutter={8} style={{ marginBottom: 20 }}>
-                <Col>
-                    <p style={{ marginTop: 8 }}>Loaded: {displayedData.length} / {sortedData.length}</p>
-
-                </Col>
-                <Col flex="auto">
-                    <Search
-                        placeholder="Enter keyword, press Enter"
-                        value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)}
-                        onSearch={(val) => {
-                            const t = val.trim();
-                            if (t && !searchKeywords.includes(t)) setSearchKeywords([...searchKeywords, t]);
-                            setSearchInput("");
-                        }}
-                        enterButton
-                    />
-
-                    {searchKeywords.length > 0 && (
-                        <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                            {searchKeywords.map((k) => (
-                                <Tag
-                                    key={k}
-                                    closable
-                                    onClose={() => setSearchKeywords(searchKeywords.filter((x) => x !== k))}
-                                    style={{
-                                        backgroundColor: "#e6f4ff",      // soft blue
-                                        color: "#0958d9",
-                                        borderRadius: 11,
-                                        fontSize: 15,
-                                        padding: "6px 12px",
-                                        cursor: "pointer",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        transition: "all 0.2s ease",
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        (e.currentTarget as HTMLElement).style.backgroundColor = "#ffccc7"; // red hover bg
-                                        (e.currentTarget as HTMLElement).style.color = "#a8071a";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        (e.currentTarget as HTMLElement).style.backgroundColor = "#e6f4ff";
-                                        (e.currentTarget as HTMLElement).style.color = "#0958d9";
-                                    }}
-                                    closeIcon={
-                                        <span
-                                            style={{
-                                                fontSize: 18,             // bigger X
-                                                fontWeight: "bold",
-                                                marginLeft: 8,
-                                                lineHeight: "1",
-                                            }}
-                                        >
-                                            ×
-                                        </span>
-                                    }
-                                >
-                                    {k}
-                                </Tag>
-                            ))}
-                        </div>
+                    // }}
+                    style={{
+                        background: themeMode === 'dark' ? '#000' : '#fff',
+                        color: themeMode === 'dark' ? '#fff' : '#000',
+                    }}>
+                    <Title level={4}>Upload Excel or CSV File</Title>
+                    {!fileUploaded && (
+                        <Dragger
+                            accept=".xlsx,.xls,.csv"
+                            multiple={false}
+                            beforeUpload={handleDragger}
+                            style={{ marginBottom: 16 }}
+                        >
+                            <p style={{ fontSize: 24 }}>
+                                <InboxOutlined />
+                            </p>
+                            <p>Click or drag file to upload</p>
+                        </Dragger>
                     )}
 
-                </Col>
+                    {fileUploaded && (
+                        <Row justify="space-between" style={{ marginBottom: 16 }}>
+                            <Col>
+                                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                    <Button onClick={() => setFileUploaded(false)}>Choose Another</Button>
+                                    <span>{fileName}</span>
+                                </div>
+                            </Col>
+                            <Col>
+                                {totalRows > 0 && (
+                                    <div style={{ textAlign: "right" }}>
+                                        <div><b>Faulty Count:</b> {faultyRows} / {totalRows}</div>
+                                        <div><b>% Faulty:</b> {faultyPercentage}%</div>
+                                        <div><b>% Impression Faulty:</b> {impressionPercentage ?? "—"}</div>
+                                    </div>
+                                )}
+                            </Col>
+                        </Row>
+                    )}
+                    <Row gutter={8} style={{ marginBottom: 20 }}>
+                        <Col>
+                            <p style={{ marginTop: 8 }}>Loaded: {displayedData.length} / {sortedData.length}</p>
 
-                <Col>
-                    <Dropdown
-                        dropdownRender={() => (
-                            <div
-                                style={{
-                                    background: "white",
-                                    padding: 12,
-                                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                                    borderRadius: 4,
+                        </Col>
+                        <Col flex="auto">
+                            <Search
+                                placeholder="Enter keyword, press Enter"
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                                onSearch={(val) => {
+                                    const t = val.trim();
+                                    if (t && !searchKeywords.includes(t)) setSearchKeywords([...searchKeywords, t]);
+                                    setSearchInput("");
                                 }}
+                                enterButton
+                            />
+
+                            {searchKeywords.length > 0 && (
+                                <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                                    {searchKeywords.map((k) => (
+                                        <Tag
+                                            key={k}
+                                            closable
+                                            onClose={() => setSearchKeywords(searchKeywords.filter((x) => x !== k))}
+                                            style={{
+                                                backgroundColor: "#e6f4ff",      // soft blue
+                                                color: "#0958d9",
+                                                borderRadius: 11,
+                                                fontSize: 15,
+                                                padding: "6px 12px",
+                                                cursor: "pointer",
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                transition: "all 0.2s ease",
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                (e.currentTarget as HTMLElement).style.backgroundColor = "#ffccc7"; // red hover bg
+                                                (e.currentTarget as HTMLElement).style.color = "#a8071a";
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                (e.currentTarget as HTMLElement).style.backgroundColor = "#e6f4ff";
+                                                (e.currentTarget as HTMLElement).style.color = "#0958d9";
+                                            }}
+                                            closeIcon={
+                                                <span
+                                                    style={{
+                                                        fontSize: 18,             // bigger X
+                                                        fontWeight: "bold",
+                                                        marginLeft: 8,
+                                                        lineHeight: "1",
+                                                    }}
+                                                >
+                                                    ×
+                                                </span>
+                                            }
+                                        >
+                                            {k}
+                                        </Tag>
+                                    ))}
+                                </div>
+                            )}
+
+                        </Col>
+
+                        <Col>
+                            <Dropdown
+                                menu={{ items: [] }} // required even if empty
+                                popupRender={(originNode) => (
+                                    <div
+                                        style={{
+                                            background: themeMode === 'dark' ? '#000' : '#fff',
+                                            color: themeMode === 'dark' ? '#fff' : '#000',
+                                            padding: 12,
+                                            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                                            borderRadius: 4,
+                                        }}
+                                    >
+                                        {originNode}
+                                        {columnVisibilityMenu}
+                                    </div>
+                                )}
+                                trigger={["click"]}
+                                placement="bottomRight"
                             >
-                                {columnVisibilityMenu}
-                            </div>
-                        )}
-                        trigger={["click"]}
-                        placement="bottomRight"
-                    >
-                        <Button icon={<EyeOutlined />}>Column Display</Button>
-                    </Dropdown>
-                </Col>
-            </Row>
-            <Row gutter={8} style={{ marginBottom: 16 }}>
-                <Col>
-                    <Checkbox
-                        checked={filterFaulty}
-                        onChange={(e) => setFilterFaulty(e.target.checked)}
-                    >
-                        Show Only Faulty
-                    </Checkbox>
-                </Col>
-            </Row>
-            <div style={{ height: "80vh", display: "flex", flexDirection: "column", padding: 16 }}>
-                {/* Scrollable Table container */}
-                <div style={{ flex: 1, overflow: "auto" }} ref={containerRef}>
-                    <Table
-                        columns={columns}
-                        dataSource={displayedData}
-                        rowKey="id"
-                        pagination={false}
-                        sticky
-                        scroll={{ y: 'calc(100vh - 300px)' }}
-                        onChange={(_, __, sorter) => {
-                            if (!Array.isArray(sorter) && sorter.order) {
-                                setSortConfig({
-                                    key: sorter.field as string,
-                                    direction: sorter.order === "ascend" ? "asc" : "desc",
-                                });
-                            } else {
-                                setSortConfig(null);
-                            }
-                        }}
-                    />
-                    {isLazyLoading && (
-                        <div style={{ textAlign: "center", padding: 16 }}>
-                            <Spin tip="Loading more..." />
+                                <Button icon={<EyeOutlined />}>Column Display</Button>
+                            </Dropdown>
+                        </Col>
+                    </Row>
+                    <Row gutter={8} style={{ marginBottom: 16 }}>
+                        <Col>
+                            <Checkbox
+                                checked={filterFaulty}
+                                onChange={(e) => setFilterFaulty(e.target.checked)}
+                            >
+                                Show Only Faulty
+                            </Checkbox>
+                        </Col>
+                    </Row>
+                    <div style={{ height: "80vh", display: "flex", flexDirection: "column", padding: 16 }}>
+                        {/* Scrollable Table container */}
+                        <div style={{ flex: 1, overflow: "auto" }} ref={containerRef}>
+                            <Table
+                                columns={columns}
+                                dataSource={displayedData}
+                                rowKey="id"
+                                pagination={false}
+                                sticky
+                                scroll={{ y: 'calc(100vh - 300px)' }}
+                                onChange={(_, __, sorter) => {
+                                    if (!Array.isArray(sorter) && sorter.order) {
+                                        setSortConfig({
+                                            key: sorter.field as string,
+                                            direction: sorter.order === "ascend" ? "asc" : "desc",
+                                        });
+                                    } else {
+                                        setSortConfig(null);
+                                    }
+                                }}
+                            />
+                            {isLazyLoading && (
+                                <div style={{ textAlign: "center", padding: 16 }}>
+                                    <Spin tip="Loading more..." />
+                                </div>
+                            )}
                         </div>
-                    )}
+
+
+                        {/* Export controls */}
+                        <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                            <Select
+                                value={exportMode}
+                                onChange={(v) => setExportMode(v)}
+                                options={[
+                                    { label: "Without Media", value: "without-media" },
+                                    { label: "With Media", value: "with-media" },
+                                ]}
+                            />
+                            <Tooltip title="Embed media thumbnails into exported file">
+                                <InfoCircleOutlined />
+                            </Tooltip>
+                            <Button type="primary" onClick={handleExport} loading={isExporting} disabled={!totalRows}>
+                                Export File
+                            </Button>
+                            {isExporting && <Progress percent={exportProgress} size="small" style={{ width: 200 }} />}
+                        </div>
+                    </div>
+
+
+                    <Row gutter={16} style={{ marginTop: 24 }}>
+                        <Col span={12}>
+                            <Card title="Advertiser Distribution">
+                                <Table
+                                    columns={[
+                                        { title: "Advertiser", dataIndex: "id" },
+                                        {
+                                            title: "Count",
+                                            dataIndex: "value",
+                                            defaultSortOrder: "ascend",
+                                            sorter: (a, b) => b.value - a.value,
+                                        },
+                                    ]}
+                                    dataSource={[...advertiserData].sort((a, b) => b.value - a.value)}
+                                    pagination={false}
+                                    rowKey="id"
+                                    size="small"
+                                />
+                            </Card>
+                        </Col>
+
+                        <Col span={12}>
+                            <Card title="Campaign Distribution">
+                                <Table
+                                    columns={[
+                                        { title: "Campaign", dataIndex: "id" },
+                                        {
+                                            title: "Count",
+                                            dataIndex: "value",
+                                            defaultSortOrder: "ascend",
+                                            sorter: (a, b) => b.value - a.value,
+                                        },
+                                    ]}
+                                    dataSource={[...campaignData].sort((a, b) => b.value - a.value)}
+                                    pagination={false}
+                                    rowKey="id"
+                                    size="small"
+                                />
+                            </Card>
+                        </Col>
+                    </Row>
                 </div>
+                <Button
+                    type="primary"
+                    shape="circle"
+                    style={{
+                        position: "fixed",
+                        bottom: 24,
+                        right: 24,
+                        zIndex: 1000,
+                    }}
+                    onClick={() => setThemeMode((prev) => (prev === 'light' ? 'dark' : 'light'))}
+                >
+                    {themeMode === 'light' ? '🌙' : '☀️'}
+                </Button>
 
-
-                {/* Export controls */}
-                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                    <Select
-                        value={exportMode}
-                        onChange={(v) => setExportMode(v)}
-                        options={[
-                            { label: "Without Media", value: "without-media" },
-                            { label: "With Media", value: "with-media" },
-                        ]}
-                    />
-                    <Tooltip title="Embed media thumbnails into exported file">
-                        <InfoCircleOutlined />
-                    </Tooltip>
-                    <Button type="primary" onClick={handleExport} loading={isExporting} disabled={!totalRows}>
-                        Export File
-                    </Button>
-                    {isExporting && <Progress percent={exportProgress} size="small" style={{ width: 200 }} />}
-                </div>
-            </div>
-
-
-            <Row gutter={16} style={{ marginTop: 24 }}>
-                <Col span={12}>
-                    <Card title="Advertiser Distribution">
-                        <Table
-                            columns={[
-                                { title: "Advertiser", dataIndex: "id" },
-                                {
-                                    title: "Count",
-                                    dataIndex: "value",
-                                    defaultSortOrder: "ascend",
-                                    sorter: (a, b) => b.value - a.value,
-                                },
-                            ]}
-                            dataSource={[...advertiserData].sort((a, b) => b.value - a.value)}
-                            pagination={false}
-                            rowKey="id"
-                            size="small"
-                        />
-                    </Card>
-                </Col>
-
-                <Col span={12}>
-                    <Card title="Campaign Distribution">
-                        <Table
-                            columns={[
-                                { title: "Campaign", dataIndex: "id" },
-                                {
-                                    title: "Count",
-                                    dataIndex: "value",
-                                    defaultSortOrder: "ascend",
-                                    sorter: (a, b) => b.value - a.value,
-                                },
-                            ]}
-                            dataSource={[...campaignData].sort((a, b) => b.value - a.value)}
-                            pagination={false}
-                            rowKey="id"
-                            size="small"
-                        />
-                    </Card>
-                </Col>
-            </Row>
-        </div>
-    );
+            </App>
+        </ConfigProvider>);
 };
 
 export default MediaInspectorV2;

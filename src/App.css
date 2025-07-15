@@ -41,6 +41,11 @@
   color: #888;
 }
 
+body {
+  background-color: var(--ant-color-bg-base);
+  transition: background-color 0.3s ease;
+}
+
 /* .react-resizable-handle {
   position: absolute;
   right: -5px;
