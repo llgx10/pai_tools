@@ -28,7 +28,7 @@ import {
     ConfigProvider,
     theme
 } from "antd";
-import { InboxOutlined, InfoCircleOutlined, EyeOutlined } from "@ant-design/icons";
+import { InboxOutlined, InfoCircleOutlined, EyeOutlined, EyeInvisibleOutlined } from "@ant-design/icons";
 
 type RowData = { [key: string]: any; media?: string; remark?: string };
 
@@ -196,6 +196,14 @@ const MediaInspectorV2: React.FC = () => {
     const [isLazyLoading, setIsLazyLoading] = useState(false);
 
 
+    const [hiddenFilters, setHiddenFilters] = useState<{
+        advertisers: Set<string>;
+        campaigns: Set<string>;
+    }>({
+        advertisers: new Set(),
+        campaigns: new Set(),
+    });
+
     // --- Derived Data & Effects ---
     const totalRows = allData.length;
     const faultyRows = allData.filter((r) => r.isFaulty).length;
@@ -236,9 +244,17 @@ const MediaInspectorV2: React.FC = () => {
     //         )
     //     );
 
-    const filteredData = filterFaulty
+
+
+    const filteredData = (filterFaulty
         ? allData.filter((row) => row.isFaulty)
-        : allData;
+        : allData
+    ).filter((row) => {
+        return (
+            !hiddenFilters.advertisers.has(row.ADVERTISER_NAME) &&
+            !hiddenFilters.campaigns.has(row.CREATIVE_CAMPAIGN_NAME)
+        );
+    });
 
     const keywordFiltered = filteredData.filter((row) =>
         searchKeywords.every((kw) =>
@@ -249,6 +265,36 @@ const MediaInspectorV2: React.FC = () => {
                 .includes(kw.toLowerCase())
         )
     );
+    const toggleHideAdvertiser = (name: string) => {
+        setHiddenFilters((prev) => {
+            const newAdvertisers = new Set(prev.advertisers);
+            if (newAdvertisers.has(name)) {
+                newAdvertisers.delete(name); // unhide
+            } else {
+                newAdvertisers.add(name); // hide
+            }
+            return {
+                ...prev,
+                advertisers: newAdvertisers,
+            };
+        });
+    };
+
+    const toggleHideCampaign = (name: string) => {
+        setHiddenFilters((prev) => {
+            const newCampaigns = new Set(prev.campaigns);
+            if (newCampaigns.has(name)) {
+                newCampaigns.delete(name);
+            } else {
+                newCampaigns.add(name);
+            }
+            return {
+                ...prev,
+                campaigns: newCampaigns,
+            };
+        });
+    };
+
 
     const sortedData = sortConfig
         ? [...filteredData]
@@ -331,6 +377,7 @@ const MediaInspectorV2: React.FC = () => {
         // setVisibleData(copy.slice(0, currentChunk * CHUNK_SIZE));
     };
 
+    
     const handleFileUpload = (file: File) => {
         setFileUploaded(true);
         setFileName(file.name);
@@ -590,8 +637,9 @@ const MediaInspectorV2: React.FC = () => {
                     )}
                     <Row gutter={8} style={{ marginBottom: 20 }}>
                         <Col>
-                            <p style={{ marginTop: 8 }}>Loaded: {displayedData.length} / {sortedData.length}</p>
-
+                            <p style={{ marginTop: 8 }}>
+                                Displaying: {filteredData.length} / {allData.length}
+                            </p>
                         </Col>
                         <Col flex="auto">
                             <Search
@@ -749,6 +797,22 @@ const MediaInspectorV2: React.FC = () => {
                                             defaultSortOrder: "ascend",
                                             sorter: (a, b) => b.value - a.value,
                                         },
+                                        {
+                                            title: "Show/Hide",
+                                            dataIndex: "id",
+                                            width: 40,
+                                            render: (id: string) => {
+                                                const isHidden = hiddenFilters.advertisers.has(id); // ✅ Correct binding
+                                                return (
+                                                    <Button
+                                                        type="text"
+                                                        icon={isHidden ? <EyeInvisibleOutlined />: <EyeOutlined />}
+                                                        onClick={() => toggleHideAdvertiser(id)}
+                                                    />
+                                                );
+                                            },
+                                        }
+
                                     ]}
                                     dataSource={[...advertiserData].sort((a, b) => b.value - a.value)}
                                     pagination={false}
@@ -768,6 +832,21 @@ const MediaInspectorV2: React.FC = () => {
                                             dataIndex: "value",
                                             defaultSortOrder: "ascend",
                                             sorter: (a, b) => b.value - a.value,
+                                        },
+                                        {
+                                            title: "Show/Hide",
+                                            dataIndex: "id",
+                                            width: 40,
+                                            render: (id: string) => {
+                                                const isHidden = hiddenFilters.campaigns.has(id); // ✅ Correct binding
+                                                return (
+                                                    <Button
+                                                        type="text"
+                                                        icon={isHidden ? <EyeInvisibleOutlined />: <EyeOutlined />}
+                                                        onClick={() => toggleHideCampaign(id)}
+                                                    />
+                                                );
+                                            },
                                         },
                                     ]}
                                     dataSource={[...campaignData].sort((a, b) => b.value - a.value)}
