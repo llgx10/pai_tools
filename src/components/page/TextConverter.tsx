@@ -23,7 +23,7 @@ const TextConverter: React.FC = () => {
     if (wrapChar) lines = lines.map(line => `${wrapChar}${line}${wrapChar}`);
     if (toUppercase) lines = lines.map(line => line.toUpperCase());
 
-    setResult(lines.join(separator));
+    setResult(lines.map(line => line).join("\n"));
   };
 
   const containerStyle: React.CSSProperties = {
