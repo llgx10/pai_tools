@@ -10,6 +10,7 @@ import GetSocialToolData from './components/page/GetSocialToolData'; // ✅ Impo
 import MediaInspector from './components/page/MediaInspector';
 import PagePreview from './components/page/PagePreview';
 import MediaInspectorV2 from './components/page/MediaInspector2';
+import TextConverter from './components/page/TextConverter';
 
 
 createRoot(document.getElementById('root')!).render(
@@ -22,6 +23,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/social-tool" element={<GetSocialToolData />} />
         <Route path="/media-inspector" element={<MediaInspector />} />
         <Route path="/media-inspector2" element={<MediaInspectorV2 />} />
+         <Route path="/text-converter" element={<TextConverter />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Film } from 'lucide-react';
+import { Link  } from 'react-router-dom';
+import { Film,ALargeSmall } from 'lucide-react';
 import { ConfigProvider, FloatButton, theme as antdTheme } from 'antd';
 import { BulbOutlined } from '@ant-design/icons';
 import 'antd/dist/reset.css'; // Reset Ant Design styles
@@ -41,6 +41,13 @@ function App() {
             >
               <Film className="text-2xl mr-2" />
               Media Inspector v2
+            </Link>
+            <Link
+              to="/text-converter"
+              className="flex items-center justify-center px-6 py-3 bg-orange-600 text-white rounded-full hover:bg-green-700 transition duration-200"
+            >
+              <ALargeSmall  className="text-2xl mr-2" />
+              Text Converter
             </Link>
           </div>
         </div>
