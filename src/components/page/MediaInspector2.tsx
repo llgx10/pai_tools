@@ -218,6 +218,33 @@ const MediaInspectorV2: React.FC = () => {
     const faultyPercentage = totalRows ? ((faultyRows / totalRows) * 100).toFixed(2) : "0";
     const impressionPercentage = totalImpressions ? ((faultyImpressions / totalImpressions) * 100).toFixed(2) : null;
 
+      useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+          if (fileUploaded) {
+            const message = "You have unsaved data. Are you sure you want to leave?";
+            e.returnValue = message;
+            return message;
+          }
+        };
+    
+        const handlePopState = () => {
+          if (fileUploaded) {
+            const message = "You have unsaved data. Are you sure you want to leave?";
+            const isConfirmed = window.confirm(message);
+            if (!isConfirmed) {
+              window.history.pushState(null, "", window.location.href);
+            }
+          }
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        window.addEventListener("popstate", handlePopState);
+        window.history.pushState(null, "", window.location.href);
+        return () => {
+          window.removeEventListener("beforeunload", handleBeforeUnload);
+          window.removeEventListener("popstate", handlePopState);
+        };
+      }, [fileUploaded]);
+
     useEffect(() => {
         if (!allData.length) return;
 
