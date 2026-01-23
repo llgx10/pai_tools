@@ -3,7 +3,7 @@ import { saveAs } from 'file-saver';
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import ExcelJS from "exceljs";
-
+import  Header  from '..//modals/Headers';
 
 type RowData = {
   [key: string]: any;
@@ -477,6 +477,8 @@ const MediaInspector: React.FC = () => {
   }, [visibleData, currentChunk, allData]);
 
   return (
+    <>
+      <Header />
     <div className="mx-auto p-6">
       <h2 className="text-xl font-bold mb-4">Upload Excel or CSV File</h2>
 
@@ -829,6 +831,7 @@ const MediaInspector: React.FC = () => {
 
 
     </div>
+     </>
   );
 
 };

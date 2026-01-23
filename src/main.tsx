@@ -11,6 +11,7 @@ import MediaInspector from './components/page/MediaInspector';
 import PagePreview from './components/page/PagePreview';
 import MediaInspectorV2 from './components/page/MediaInspector2';
 import TextConverter from './components/page/TextConverter';
+import QueryBuilder from './components/page/QueryBuilder';
 
 
 createRoot(document.getElementById('root')!).render(
@@ -24,6 +25,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/media-inspector" element={<MediaInspector />} />
         <Route path="/media-inspector2" element={<MediaInspectorV2 />} />
          <Route path="/text-converter" element={<TextConverter />} />
+        <Route path="/query-builder" element={<QueryBuilder />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>

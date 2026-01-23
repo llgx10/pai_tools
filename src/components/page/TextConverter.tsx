@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import  Header  from '..//modals/Headers';
+
 
 const TextConverter: React.FC = () => {
   const [inputText, setInputText] = useState("");
@@ -101,57 +103,107 @@ const TextConverter: React.FC = () => {
   };
 
   return (
-    <div style={containerStyle}>
-      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Text Converter</h2>
+  <>
+    {/* ✅ Header */}
+    <Header />
 
-      <textarea
-        rows={8}
-        style={textareaStyle}
-        placeholder="Paste your text here..."
-        value={inputText}
-        onChange={e => setInputText(e.target.value)}
-      />
+    {/* Page Wrapper to avoid header overlap */}
+    <div
+      style={{
+        paddingTop: 80, // important because header is sticky
+      }}
+    >
+      <div style={containerStyle}>
+        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
+          Text Converter
+        </h2>
 
-      <div style={{ marginBottom: "15px" }}>
-        <label style={labelStyle}>
-          Separator:
-          <input type="text" value={separator} onChange={e => setSeparator(e.target.value)} style={inputStyle} />
-        </label>
+        <textarea
+          rows={8}
+          style={textareaStyle}
+          placeholder="Paste your text here..."
+          value={inputText}
+          onChange={e => setInputText(e.target.value)}
+        />
 
-        <label style={labelStyle}>
-          Wrap each line with:
-          <input type="text" value={wrapChar} onChange={e => setWrapChar(e.target.value)} style={inputStyle} />
-        </label>
+        <div style={{ marginBottom: "15px" }}>
+          <label style={labelStyle}>
+            Separator:
+            <input
+              type="text"
+              value={separator}
+              onChange={e => setSeparator(e.target.value)}
+              style={inputStyle}
+            />
+          </label>
 
-        <label style={{ display: "flex", alignItems: "center", marginTop: "10px" }}>
-          <input type="checkbox" checked={toUppercase} onChange={e => setToUppercase(e.target.checked)} style={{ marginRight: "8px" }} />
-          Convert to uppercase
-        </label>
+          <label style={labelStyle}>
+            Wrap each line with:
+            <input
+              type="text"
+              value={wrapChar}
+              onChange={e => setWrapChar(e.target.value)}
+              style={inputStyle}
+            />
+          </label>
+
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              marginTop: "10px",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={toUppercase}
+              onChange={e => setToUppercase(e.target.checked)}
+              style={{ marginRight: "8px" }}
+            />
+            Convert to uppercase
+          </label>
+        </div>
+
+        <button
+          style={buttonStyle}
+          onMouseOver={e =>
+            (e.currentTarget.style.backgroundColor = "#45a049")
+          }
+          onMouseOut={e =>
+            (e.currentTarget.style.backgroundColor = "#4CAF50")
+          }
+          onClick={handleConvert}
+        >
+          Convert
+        </button>
+
+        <h3 style={{ marginTop: "20px" }}>Result:</h3>
+
+        <textarea
+          rows={8}
+          style={{
+            ...textareaStyle,
+            backgroundColor:
+              themeMode === "light" ? "#f1f1f1" : "#333",
+          }}
+          value={result}
+          readOnly
+        />
       </div>
-
-      <button
-        style={buttonStyle}
-        onMouseOver={e => (e.currentTarget.style.backgroundColor = "#45a049")}
-        onMouseOut={e => (e.currentTarget.style.backgroundColor = "#4CAF50")}
-        onClick={handleConvert}
-      >
-        Convert
-      </button>
-
-      <h3 style={{ marginTop: "20px" }}>Result:</h3>
-      <textarea
-        rows={8}
-        style={{ ...textareaStyle, backgroundColor: themeMode === "light" ? "#f1f1f1" : "#333" }}
-        value={result}
-        readOnly
-      />
-
-      {/* Floating Theme Toggle Button */}
-      <button style={floatButtonStyle} onClick={() => setThemeMode(prev => (prev === "light" ? "dark" : "light"))}>
-        {themeMode === "light" ? "🌙" : "☀️"}
-      </button>
     </div>
-  );
+
+    {/* 🌙 Floating Theme Toggle Button */}
+    <button
+      style={floatButtonStyle}
+      onClick={() =>
+        setThemeMode(prev => (prev === "light" ? "dark" : "light"))
+      }
+    >
+      {themeMode === "light" ? "🌙" : "☀️"}
+    </button>
+  </>
+);
+
 };
 
 export default TextConverter;

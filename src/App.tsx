@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link  } from 'react-router-dom';
-import { Film,ALargeSmall } from 'lucide-react';
+import { Film,ALargeSmall,Hammer  } from 'lucide-react';
 import { ConfigProvider, FloatButton, theme as antdTheme } from 'antd';
 import { BulbOutlined } from '@ant-design/icons';
 import 'antd/dist/reset.css'; // Reset Ant Design styles
+import AppHeader from "./components/modals/Headers";
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -14,6 +15,7 @@ function App() {
         algorithm: isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
       }}
     >
+      <AppHeader />
       <div
         className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
           isDarkMode ? 'bg-[#141414]' : 'bg-gray-100'
@@ -48,6 +50,13 @@ function App() {
             >
               <ALargeSmall  className="text-2xl mr-2" />
               Text Converter
+            </Link>
+            <Link
+              to="/query-builder"
+              className="flex items-center justify-center px-6 py-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition duration-200"
+            >
+              <Hammer   className="text-2xl mr-2" />
+              Query Builder
             </Link>
           </div>
         </div>

@@ -4,7 +4,7 @@ import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import ExcelJS from "exceljs";
 import throttle from 'lodash/throttle';
-
+import Header from '..//modals/Headers';
 
 
 import {
@@ -163,6 +163,8 @@ const MediaInspectorV2: React.FC = () => {
         "CREATIVE_URL_SUPPLIER"
     ]);
     const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
+    const [activeAdvertiser, setActiveAdvertiser] = useState<string | null>(null);
+    const [activeCampaign, setActiveCampaign] = useState<string | null>(null);
 
 
 
@@ -218,32 +220,32 @@ const MediaInspectorV2: React.FC = () => {
     const faultyPercentage = totalRows ? ((faultyRows / totalRows) * 100).toFixed(2) : "0";
     const impressionPercentage = totalImpressions ? ((faultyImpressions / totalImpressions) * 100).toFixed(2) : null;
 
-      useEffect(() => {
+    useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-          if (fileUploaded) {
-            const message = "You have unsaved data. Are you sure you want to leave?";
-            e.returnValue = message;
-            return message;
-          }
-        };
-    
-        const handlePopState = () => {
-          if (fileUploaded) {
-            const message = "You have unsaved data. Are you sure you want to leave?";
-            const isConfirmed = window.confirm(message);
-            if (!isConfirmed) {
-              window.history.pushState(null, "", window.location.href);
+            if (fileUploaded) {
+                const message = "You have unsaved data. Are you sure you want to leave?";
+                e.returnValue = message;
+                return message;
             }
-          }
+        };
+
+        const handlePopState = () => {
+            if (fileUploaded) {
+                const message = "You have unsaved data. Are you sure you want to leave?";
+                const isConfirmed = window.confirm(message);
+                if (!isConfirmed) {
+                    window.history.pushState(null, "", window.location.href);
+                }
+            }
         };
         window.addEventListener("beforeunload", handleBeforeUnload);
         window.addEventListener("popstate", handlePopState);
         window.history.pushState(null, "", window.location.href);
         return () => {
-          window.removeEventListener("beforeunload", handleBeforeUnload);
-          window.removeEventListener("popstate", handlePopState);
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+            window.removeEventListener("popstate", handlePopState);
         };
-      }, [fileUploaded]);
+    }, [fileUploaded]);
 
     useEffect(() => {
         if (!allData.length) return;
@@ -277,6 +279,9 @@ const MediaInspectorV2: React.FC = () => {
         ? allData.filter((row) => row.isFaulty)
         : allData
     ).filter((row) => {
+        if (activeAdvertiser && row.ADVERTISER_NAME !== activeAdvertiser) return false;
+        if (activeCampaign && row.CREATIVE_CAMPAIGN_NAME !== activeCampaign) return false;
+
         return (
             !hiddenFilters.advertisers.has(row.ADVERTISER_NAME) &&
             !hiddenFilters.campaigns.has(row.CREATIVE_CAMPAIGN_NAME)
@@ -404,7 +409,7 @@ const MediaInspectorV2: React.FC = () => {
         // setVisibleData(copy.slice(0, currentChunk * CHUNK_SIZE));
     };
 
-    
+
     const handleFileUpload = (file: File) => {
         setFileUploaded(true);
         setFileName(file.name);
@@ -529,12 +534,52 @@ const MediaInspectorV2: React.FC = () => {
 
 
 
+    // const advertiserActionColumn = {
+    //     title: "",
+    //     key: "advertiser_action",
+    //     width: 40,
+    //     fixed: "left" as const,
+    //     render: (_: any, record: any) => (
+    //         <Tooltip title="Show only this advertiser">
+    //             <Button
+    //                 size="small"
+    //                 type={activeAdvertiser === record.ADVERTISER_NAME ? "primary" : "text"}
+    //                 onClick={() =>
+    //                     setActiveAdvertiser(prev =>
+    //                         prev === record.ADVERTISER_NAME ? null : record.ADVERTISER_NAME
+    //                     )
+    //                 }
+    //             >
+    //                 🎯
+    //             </Button>
+    //         </Tooltip>
+    //     ),
+    // };
+
+    // const campaignActionColumn = {
+    //     title: "",
+    //     key: "campaign_action",
+    //     width: 40,
+    //     render: (_: any, record: any) => (
+    //         <Tooltip title="Show only this campaign">
+    //             <Button
+    //                 size="small"
+    //                 type={activeCampaign === record.CREATIVE_CAMPAIGN_NAME ? "primary" : "text"}
+    //                 onClick={() =>
+    //                     setActiveCampaign(prev =>
+    //                         prev === record.CREATIVE_CAMPAIGN_NAME ? null : record.CREATIVE_CAMPAIGN_NAME
+    //                     )
+    //                 }
+    //             >
+    //                 🎯
+    //             </Button>
+    //         </Tooltip>
+    //     ),
+    // };
 
 
     // --- Columns for Table ---
-    const dynamicColumns = getSortedColoredColumns(baseKeys, themeMode).filter(col =>
-        visibleColumns.includes(col.key)
-    );
+    const dynamicColumns = getSortedColoredColumns(baseKeys, themeMode).filter(col => visibleColumns.includes(col.key));
 
     const fixedColumns = [
         {
@@ -628,7 +673,8 @@ const MediaInspectorV2: React.FC = () => {
                         background: themeMode === 'dark' ? '#000' : '#fff',
                         color: themeMode === 'dark' ? '#fff' : '#000',
                     }}>
-                    <Title level={4}>Upload Excel or CSV File</Title>
+                    <Header />
+                    <Title level={4} style={{ marginTop: 16 }}>Upload Excel or CSV File</Title>
                     {!fileUploaded && (
                         <Dragger
                             accept=".xlsx,.xls,.csv"
@@ -829,17 +875,37 @@ const MediaInspectorV2: React.FC = () => {
                                             dataIndex: "id",
                                             width: 40,
                                             render: (id: string) => {
-                                                const isHidden = hiddenFilters.advertisers.has(id); // ✅ Correct binding
+                                                const isHidden = hiddenFilters.advertisers.has(id);
                                                 return (
                                                     <Button
                                                         type="text"
-                                                        icon={isHidden ? <EyeInvisibleOutlined />: <EyeOutlined />}
+                                                        icon={isHidden ? <EyeInvisibleOutlined /> : <EyeOutlined />}
                                                         onClick={() => toggleHideAdvertiser(id)}
                                                     />
                                                 );
                                             },
-                                        }
+                                        }, // ✅ COMMA added here
+                                        {
+                                            title: "Action",
+                                            key: "action",
+                                            width: 40,
+                                            render: (_: any, record: any) => (
+                                                <Tooltip title="Show only this advertiser">
+                                                    <Button
+                                                        size="small"
+                                                        type={activeAdvertiser === record.id ? "primary" : "text"}
+                                                        onClick={() =>
+                                                            setActiveAdvertiser(prev =>
+                                                                prev === record.id ? null : record.id
+                                                            )
+                                                        }
 
+                                                    >
+                                                        🎯
+                                                    </Button>
+                                                </Tooltip>
+                                            ),
+                                        },
                                     ]}
                                     dataSource={[...advertiserData].sort((a, b) => b.value - a.value)}
                                     pagination={false}
@@ -848,6 +914,7 @@ const MediaInspectorV2: React.FC = () => {
                                 />
                             </Card>
                         </Col>
+
 
                         <Col span={12}>
                             <Card title="Campaign Distribution">
@@ -865,15 +932,36 @@ const MediaInspectorV2: React.FC = () => {
                                             dataIndex: "id",
                                             width: 40,
                                             render: (id: string) => {
-                                                const isHidden = hiddenFilters.campaigns.has(id); // ✅ Correct binding
+                                                const isHidden = hiddenFilters.campaigns.has(id);
                                                 return (
                                                     <Button
                                                         type="text"
-                                                        icon={isHidden ? <EyeInvisibleOutlined />: <EyeOutlined />}
+                                                        icon={isHidden ? <EyeInvisibleOutlined /> : <EyeOutlined />}
                                                         onClick={() => toggleHideCampaign(id)}
                                                     />
                                                 );
                                             },
+                                        },
+                                        {
+                                            title: "Action",
+                                            key: "action",
+                                            width: 40,
+                                            render: (_: any, record: any) => (
+                                                <Tooltip title="Show only this campaign">
+                                                    <Button
+                                                        size="small"
+                                                        type={activeCampaign=== record.id ? "primary" : "text"}
+                                                        onClick={() =>
+                                                            setActiveCampaign(prev =>
+                                                                prev === record.id ? null : record.id
+                                                            )
+                                                        }
+
+                                                    >
+                                                        🎯
+                                                    </Button>
+                                                </Tooltip>
+                                            ),
                                         },
                                     ]}
                                     dataSource={[...campaignData].sort((a, b) => b.value - a.value)}
