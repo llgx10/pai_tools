@@ -15,11 +15,11 @@ const AppHeader: React.FC = () => {
       label: "Home",
       onClick: () => navigate("/"),
     },
-    {
-      key: "/media-inspector",
-      label: "Media Inspector",
-      onClick: () => navigate("/media-inspector"),
-    },
+    // {
+    //   key: "/media-inspector",
+    //   label: "Media Inspector",
+    //   onClick: () => navigate("/media-inspector"),
+    // },
     {
       key: "/media-inspector2",
       label: "Media Inspector V2",

@@ -117,7 +117,7 @@ const QueryBuilder: React.FC = () => {
       query += `  OR REGEXP_CONTAINS(UPPER(COALESCE(SOCIAL_DESCRIPTION,'')), "${pattern}") )`;
     }
 
-
+ 
     // Inclusions
     if (inclusions.length > 0) {
       const incStatements: string[] = inclusions

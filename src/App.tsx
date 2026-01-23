@@ -29,13 +29,13 @@ function App() {
           <h1 className="text-3xl font-semibold text-blue-600 mb-6">PAI Tools</h1>
 
           <div className="flex flex-col gap-6">
-            <Link
+            {/* <Link
               to="/media-inspector"
               className="flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition duration-200"
             >
               <Film className="text-2xl mr-2" />
               Media Inspector
-            </Link>
+            </Link> */}
 
             <Link
               to="/media-inspector2"
