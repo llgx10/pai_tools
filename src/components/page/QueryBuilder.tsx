@@ -143,12 +143,19 @@ const QueryBuilder: React.FC = () => {
 
 
     // Exclusions
-    exclusions.forEach((ex) => {
-      const exArr = ex.keywords.split(",").map((k) => k.trim().toUpperCase()).filter(Boolean);
-      if (exArr.length > 0) {
-        query += `\nAND NOT REGEXP_CONTAINS(UPPER(COALESCE(${ex.column},'')), "${exArr.join("|")}")`;
+    if (exclusions.length > 0) {
+      const columns = exclusions.map(ex => ex.column);
+      const keywords = Array.from(
+        new Set(exclusions.flatMap(ex => ex.keywords.split(",").map(k => k.trim().toUpperCase()).filter(Boolean)))
+      );
+
+      if (columns.length > 0 && keywords.length > 0) {
+        const pattern = keywords.join("|");
+        const statements = columns.map(col => `REGEXP_CONTAINS(UPPER(COALESCE(${col},'')), "${pattern}")`);
+        query += `\nAND NOT (\n  ${statements.join("\n  OR ")}\n)`;
       }
-    });
+    }
+
 
     // URL Exclusion
     const urlArr = urlExclusion.urls.split(",").map((u) => u.trim()).filter(Boolean);
