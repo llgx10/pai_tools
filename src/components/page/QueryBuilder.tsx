@@ -28,6 +28,7 @@ type Inclusion = {
   column: string;
   keywords: string;
   type: "IN" | "REGEXP_CONTAINS";
+  connector: "AND" | "OR";
 };
 
 type UrlExclusion = {
@@ -53,8 +54,10 @@ const QueryBuilder: React.FC = () => {
   }, [themeMode]);
 
   // Add / Remove handlers
-  const handleAddExclusion = () => setExclusions([...exclusions, { column: columns[0], keywords: "" }]);
-  const handleAddInclusion = () => setInclusions([...inclusions, { column: columns[0], keywords: "", type: "IN" }]);
+  const handleAddExclusion = () =>
+    setExclusions([...exclusions, { column: columns[0], keywords: "" }]);
+  const handleAddInclusion = () =>
+    setInclusions([...inclusions, { column: columns[0], keywords: "", type: "IN", connector: "AND" }]);
   const handleRemoveExclusion = (index: number) => setExclusions(exclusions.filter((_, i) => i !== index));
   const handleRemoveInclusion = (index: number) => setInclusions(inclusions.filter((_, i) => i !== index));
 
@@ -64,12 +67,18 @@ const QueryBuilder: React.FC = () => {
     setExclusions(newExclusions);
   };
 
-  const handleInclusionChange = (index: number, field: keyof Inclusion, value: string) => {
+  const handleInclusionChange = (
+    index: number,
+    field: keyof Inclusion,
+    value: string | Inclusion["type"] | Inclusion["connector"]
+  ) => {
     const newInclusions = [...inclusions];
-    if (field === "type") {
-      newInclusions[index][field] = value as "IN" | "REGEXP_CONTAINS";
-    } else {
-      newInclusions[index][field] = value;
+    if (field === "type" && (value === "IN" || value === "REGEXP_CONTAINS")) {
+      newInclusions[index][field] = value as Inclusion["type"];
+    } else if (field === "connector" && (value === "AND" || value === "OR")) {
+      newInclusions[index][field] = value as Inclusion["connector"];
+    } else if (field === "column" || field === "keywords") {
+      newInclusions[index][field] = value as string;
     }
     setInclusions(newInclusions);
   };
@@ -95,6 +104,7 @@ const QueryBuilder: React.FC = () => {
 
     let query = "";
 
+    // Base Keywords
     if (baseArr.length > 0) {
       const pattern = baseArr.join("|");
       query += `( REGEXP_CONTAINS(UPPER(ADVERTISER_NAME), "${pattern}")\n`;
@@ -107,18 +117,30 @@ const QueryBuilder: React.FC = () => {
       query += `  OR REGEXP_CONTAINS(UPPER(COALESCE(SOCIAL_DESCRIPTION,'')), "${pattern}") )`;
     }
 
+
     // Inclusions
-    inclusions.forEach((inc) => {
-      const arr = inc.keywords.split(",").map((k) => k.trim().toUpperCase()).filter(Boolean);
-      if (arr.length > 0) {
-        if (inc.type === "IN") {
-          const quoted = arr.map((v) => `"${v}"`).join(",");
-          query += `\nAND ${inc.column} IN (${quoted})`;
-        } else {
-          query += `\nAND REGEXP_CONTAINS(UPPER(COALESCE(${inc.column},'')), "${arr.join("|")}")`;
-        }
+    if (inclusions.length > 0) {
+      const incStatements: string[] = inclusions
+        .map((inc) => {
+          const arr = inc.keywords.split(",").map((k) => k.trim().toUpperCase()).filter(Boolean);
+          if (arr.length === 0) return "";
+          if (inc.type === "IN") {
+            return `${inc.column} IN (${arr.map((v) => `"${v}"`).join(",")})`;
+          } else {
+            return `REGEXP_CONTAINS(UPPER(COALESCE(${inc.column},'')), "${arr.join("|")}")`;
+          }
+        })
+        .filter(Boolean);
+
+      if (incStatements.length > 0) {
+        // join all statements with their connector
+        const combined = incStatements
+          .map((stmt, idx) => (idx === 0 ? stmt : `${inclusions[idx].connector} ${stmt}`))
+          .join("\n  ");
+        query += `\nAND (\n  ${combined}\n)`;
       }
-    });
+    }
+
 
     // Exclusions
     exclusions.forEach((ex) => {
@@ -136,7 +158,8 @@ const QueryBuilder: React.FC = () => {
         query += `\nAND CREATIVE_URL_SUPPLIER NOT IN (${quoted})`;
       } else {
         const pattern = processUrlExclusion(urlExclusion.urls);
-        if (pattern) query += `\nAND NOT REGEXP_CONTAINS(UPPER(COALESCE(CREATIVE_URL_SUPPLIER,'')), "${pattern}")`;
+        if (pattern)
+          query += `\nAND NOT REGEXP_CONTAINS(UPPER(COALESCE(CREATIVE_URL_SUPPLIER,'')), "${pattern}")`;
       }
     }
 
@@ -179,7 +202,6 @@ const QueryBuilder: React.FC = () => {
         title={<span style={{ color: cardColor }}>Query Builder</span>}
         style={{ maxWidth: 900, margin: "20px auto", backgroundColor: cardBg, color: cardColor }}
       >
-
         <Space direction="vertical" style={{ width: "100%" }} size="large">
           {/* Base Keywords */}
           <div>
@@ -192,6 +214,10 @@ const QueryBuilder: React.FC = () => {
             <label>Inclusions (IN / REGEXP_CONTAINS)</label>
             {inclusions.map((inc, idx) => (
               <div key={idx} style={rowStyle("#d4fcd4")}>
+                <Select value={inc.connector} onChange={(val) => handleInclusionChange(idx, "connector", val)} style={{ width: 80 }}>
+                  <Option value="AND">AND</Option>
+                  <Option value="OR">OR</Option>
+                </Select>
                 <Select value={inc.column} onChange={(val) => handleInclusionChange(idx, "column", val)} style={{ flex: 1 }}>
                   {columns.map((c) => (
                     <Option key={c} value={c}>{c}</Option>
@@ -207,13 +233,7 @@ const QueryBuilder: React.FC = () => {
                   onChange={(e) => handleInclusionChange(idx, "keywords", e.target.value)}
                   style={{ flex: 2 }}
                 />
-                <Trash2
-                  size={20}
-                  color="grey"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => handleRemoveInclusion(idx)}
-                />
-
+                <Trash2 size={20} color="red" style={{ cursor: "pointer" }} onClick={() => handleRemoveInclusion(idx)} />
               </div>
             ))}
             <Button onClick={handleAddInclusion} type="dashed">Add Inclusion</Button>
@@ -235,13 +255,7 @@ const QueryBuilder: React.FC = () => {
                   onChange={(e) => handleExclusionChange(idx, "keywords", e.target.value)}
                   style={{ flex: 2 }}
                 />
-                <Trash2
-                  size={20}
-                  color="grey"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => handleRemoveExclusion(idx)}
-                />
-
+                <Trash2 size={20} color="red" style={{ cursor: "pointer" }} onClick={() => handleRemoveExclusion(idx)} />
               </div>
             ))}
             <Button onClick={handleAddExclusion} type="dashed">Add Exclusion</Button>
