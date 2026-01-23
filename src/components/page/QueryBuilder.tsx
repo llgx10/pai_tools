@@ -109,10 +109,10 @@ const QueryBuilder: React.FC = () => {
       const pattern = baseArr.join("|");
       query += `( REGEXP_CONTAINS(UPPER(ADVERTISER_NAME), "${pattern}")\n`;
       query += `  OR REGEXP_CONTAINS(UPPER(COALESCE(CREATIVE_CAMPAIGN_NAME,'')), "${pattern}")\n`;
-      query += `  OR REGEXP_CONTAINS(UPPER(CREATIVE_LANDINGPAGE_URL), "${pattern}")\n`;
+      query += `  OR REGEXP_CONTAINS(UPPER(COALESCE(CREATIVE_LANDINGPAGE_URL,'')), "${pattern}")\n`;
       query += `  OR REGEXP_CONTAINS(UPPER(COALESCE(CREATIVE_VIDEO_TITLE,'')), "${pattern}")\n`;
       query += `  OR REGEXP_CONTAINS(UPPER(COALESCE(SOCIAL_CAMPAIGN_TEXT,'')), "${pattern}")\n`;
-      query += `  OR REGEXP_CONTAINS(UPPER(SOCIAL_PAGE_NAME), "${pattern}")\n`;
+      query += `  OR REGEXP_CONTAINS(UPPER(COALESCE(SOCIAL_PAGE_NAME,'')), "${pattern}")\n`;
       query += `  OR REGEXP_CONTAINS(UPPER(COALESCE(SOCIAL_HEADLINE_TEXT,'')), "${pattern}")\n`;
       query += `  OR REGEXP_CONTAINS(UPPER(COALESCE(SOCIAL_DESCRIPTION,'')), "${pattern}") )`;
     }
