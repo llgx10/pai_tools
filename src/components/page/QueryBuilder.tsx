@@ -233,7 +233,7 @@ const QueryBuilder: React.FC = () => {
                   onChange={(e) => handleInclusionChange(idx, "keywords", e.target.value)}
                   style={{ flex: 2 }}
                 />
-                <Trash2 size={20} color="red" style={{ cursor: "pointer" }} onClick={() => handleRemoveInclusion(idx)} />
+                <Trash2 size={20} color="grey" style={{ cursor: "pointer" }} onClick={() => handleRemoveInclusion(idx)} />
               </div>
             ))}
             <Button onClick={handleAddInclusion} type="dashed">Add Inclusion</Button>
@@ -255,7 +255,7 @@ const QueryBuilder: React.FC = () => {
                   onChange={(e) => handleExclusionChange(idx, "keywords", e.target.value)}
                   style={{ flex: 2 }}
                 />
-                <Trash2 size={20} color="red" style={{ cursor: "pointer" }} onClick={() => handleRemoveExclusion(idx)} />
+                <Trash2 size={20} color="grey" style={{ cursor: "pointer" }} onClick={() => handleRemoveExclusion(idx)} />
               </div>
             ))}
             <Button onClick={handleAddExclusion} type="dashed">Add Exclusion</Button>
