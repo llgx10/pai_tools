@@ -5,6 +5,7 @@ import Papa from "papaparse";
 import ExcelJS from "exceljs";
 import throttle from 'lodash/throttle';
 import Header from '..//modals/Headers';
+import { useUnsavedChangesWarning } from "../../hooks/useUnsavedChangesWarning";
 
 
 import {
@@ -26,13 +27,14 @@ import {
     Spin,
     App,
     ConfigProvider,
-    theme
+    theme,
+    Layout
 } from "antd";
 import { InboxOutlined, InfoCircleOutlined, EyeOutlined, EyeInvisibleOutlined } from "@ant-design/icons";
 
 type RowData = { [key: string]: any; media?: string; remark?: string };
 
-const CHUNK_SIZE = 20;
+const CHUNK_SIZE = 25;
 const { Dragger } = Upload;
 const { Search } = Input;
 const { Title } = Typography;
@@ -154,6 +156,8 @@ const MediaInspectorV2: React.FC = () => {
     const [currentChunk, setCurrentChunk] = useState(1);
     const [fileName, setFileName] = useState<string | null>(null);
     const [fileUploaded, setFileUploaded] = useState(false);
+    useUnsavedChangesWarning(fileUploaded);
+
     const containerRef = useRef<HTMLDivElement>(null);
     const [visibleColumns, setVisibleColumns] = useState<string[]>([
         "BRAND",
@@ -166,7 +170,11 @@ const MediaInspectorV2: React.FC = () => {
     const [activeAdvertiser, setActiveAdvertiser] = useState<string | null>(null);
     const [activeCampaign, setActiveCampaign] = useState<string | null>(null);
 
-
+    const confirmDiscardChanges = () => {
+        return window.confirm(
+            "You have unsaved data. Are you sure you want to discard it?"
+        );
+    };
 
 
 
@@ -660,6 +668,9 @@ const MediaInspectorV2: React.FC = () => {
             }}
         >
             <App>
+                <><Layout>
+                    <Header />
+                </Layout></>
                 <div
                     // style={{
                     //     padding: 24,
@@ -673,27 +684,66 @@ const MediaInspectorV2: React.FC = () => {
                         background: themeMode === 'dark' ? '#000' : '#fff',
                         color: themeMode === 'dark' ? '#fff' : '#000',
                     }}>
-                    <Header />
-                    <Title level={4} style={{ marginTop: 16 }}>Upload Excel or CSV File</Title>
+
+                    <Title level={4} style={{ marginTop: 16, padding: 10 }}>Upload Excel or CSV File</Title>
                     {!fileUploaded && (
-                        <Dragger
-                            accept=".xlsx,.xls,.csv"
-                            multiple={false}
-                            beforeUpload={handleDragger}
-                            style={{ marginBottom: 16 }}
+                        <div
+                            style={{
+                                position: "relative",
+                                marginBottom: 14,
+                            }}
                         >
-                            <p style={{ fontSize: 24 }}>
-                                <InboxOutlined />
-                            </p>
-                            <p>Click or drag file to upload</p>
-                        </Dragger>
+                            {/* ❌ Close button */}
+                            <Button
+                                type="text"
+                                danger
+                                size="small"
+                                style={{
+                                    position: "absolute",
+                                    top: 8,
+                                    right: 8,
+                                    zIndex: 10,
+                                    fontSize: 16,
+                                    lineHeight: 1,
+                                }}
+                                onClick={() => {
+                                    setFileUploaded(false);
+                                    setFileName(null);
+                                    // setAllData([]);
+                                }}
+                            >
+                                ✕
+                            </Button>
+
+                            <Dragger
+                                accept=".xlsx,.xls,.csv"
+                                multiple={false}
+                                beforeUpload={handleDragger}
+                            >
+                                <p style={{ fontSize: 24 }}>
+                                    <InboxOutlined />
+                                </p>
+                                <p>Click or drag file to upload</p>
+                            </Dragger>
+                        </div>
                     )}
+
 
                     {fileUploaded && (
                         <Row justify="space-between" style={{ marginBottom: 16 }}>
                             <Col>
                                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                    <Button onClick={() => setFileUploaded(false)}>Choose Another</Button>
+                                    <Button
+                                        onClick={() => {
+                                            if (!allData.length || confirmDiscardChanges()) {
+                                                setFileUploaded(false);
+                                                setFileName(null);
+                                                setAllData([]);
+                                            }
+                                        }}
+                                    >
+                                        Choose Another
+                                    </Button>
                                     <span>{fileName}</span>
                                 </div>
                             </Col>
@@ -950,7 +1000,7 @@ const MediaInspectorV2: React.FC = () => {
                                                 <Tooltip title="Show only this campaign">
                                                     <Button
                                                         size="small"
-                                                        type={activeCampaign=== record.id ? "primary" : "text"}
+                                                        type={activeCampaign === record.id ? "primary" : "text"}
                                                         onClick={() =>
                                                             setActiveCampaign(prev =>
                                                                 prev === record.id ? null : record.id
