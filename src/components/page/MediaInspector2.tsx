@@ -291,6 +291,7 @@ const MediaInspectorV2: React.FC = () => {
                 ? url.split("/").pop()
                 : new URL(url).searchParams.get("v");
             if (!videoId) return null;
+            if(!embedHtml) return null;
 
             return (
                 <iframe
