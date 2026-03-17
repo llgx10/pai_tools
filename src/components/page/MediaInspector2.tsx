@@ -778,7 +778,7 @@ const MediaInspectorV2: React.FC = () => {
 
                     <Title level={4} style={{ marginTop: 16, padding: 10 }}>Upload Excel or CSV File</Title>
                     <Title level={5} style={{ marginTop: 16, padding: 10,color: 'red' }}>
-                        **Now support FPK data embedding (video for YouTube, Thumbnail for TikTok)**
+                        **Now support FPK data rendering (video for YouTube, thumbnail for TikTok)**
                     </Title>
                     {!fileUploaded && (
                         <div
