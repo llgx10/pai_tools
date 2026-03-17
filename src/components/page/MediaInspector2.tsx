@@ -241,23 +241,23 @@ const MediaInspectorV2: React.FC = () => {
         }
 
         if (url.includes("youtube.com") || url.includes("youtu.be")) {
-            const videoId = url.includes("youtu.be")
-                ? url.split("/").pop()
-                : new URL(url).searchParams.get("v");
-            if (!videoId) return null;
-
-            return (
-                <iframe
-                    width="100%"
-                    height="100%"
-                    src={`https://www.youtube.com/embed/${videoId}`}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    title="YouTube video"
-                />
-            );
-        }
+        const videoId = url.includes("youtu.be")
+            ? url.split("/").pop()
+            : new URL(url).searchParams.get("v");
+        if (!videoId) return null;
+        if (!embedHtml) return null;
+        return (
+            <iframe
+                width="100%"
+                height="100%"
+                src={`https://www.youtube.com/embed/${videoId}`}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="YouTube video"
+            />
+        );
+    }
 
         return <div>Unsupported media</div>;
     };
