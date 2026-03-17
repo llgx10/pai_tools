@@ -178,70 +178,26 @@ const MediaInspectorV2: React.FC = () => {
 
 
     const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
+        const [embedHtml, setEmbedHtml] = useState<string | null>(null);
         const [loading, setLoading] = useState(true);
 
         useEffect(() => {
             setLoading(true);
-            // For TikTok, we dynamically load their embed script once
-            if (url.includes("tiktok.com")) {
-                if (!document.querySelector('script[src="https://www.tiktok.com/embed.js"]')) {
-                    const script = document.createElement("script");
-                    script.src = "https://www.tiktok.com/embed.js";
-                    script.async = true;
-                    document.body.appendChild(script);
-                }
-            }
-            setLoading(false);
+            fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`)
+                .then(res => res.json())
+                .then(data => {
+                    setEmbedHtml(data.html || "");
+                })
+                .catch(err => {
+                    console.error(err);
+                    setEmbedHtml("<div>Failed to load embed</div>");
+                })
+                .finally(() => setLoading(false));
         }, [url]);
 
         if (loading) return <div style={{ textAlign: "center" }}>Loading embed...</div>;
-
-        // TikTok embed
-        if (url.includes("tiktok.com")) {
-            const videoIdMatch = url.match(/video\/(\d+)/);
-            const videoId = videoIdMatch ? videoIdMatch[1] : null;
-            if (!videoId) return <div>Invalid TikTok URL</div>;
-
-            return (
-                <blockquote
-                    className="tiktok-embed"
-                    cite={url}
-                    data-video-id={videoId}
-                    data-embed-from="oembed"
-                    style={{ maxWidth: "605px", minWidth: "325px", width: "100%", height: "100%" }}
-                >
-                    <section>
-                        <a target="_blank" rel="noreferrer" href={url}>
-                            @{url.split("/")[3]}
-                        </a>
-                    </section>
-                </blockquote>
-            );
-        }
-
-        // YouTube embed
-        if (url.includes("youtube.com") || url.includes("youtu.be")) {
-            const videoId = url.includes("youtu.be")
-                ? url.split("/").pop()
-                : new URL(url).searchParams.get("v");
-            if (!videoId) return <div>Invalid YouTube URL</div>;
-
-            return (
-                <iframe
-                    width="100%"
-                    height="100%"
-                    src={`https://www.youtube.com/embed/${videoId}`}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    title="YouTube video"
-                />
-            );
-        }
-
-        return <div>Unsupported media</div>;
+        return <div style={{ width: "100%", height: "100%" }} dangerouslySetInnerHTML={{ __html: embedHtml || "" }} />;
     };
-
 
     const [filterFaulty, setFilterFaulty] = useState(false);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
