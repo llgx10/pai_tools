@@ -188,7 +188,7 @@ const MediaInspectorV2: React.FC = () => {
             const task = queue.shift();
             if (task) {
                 await task();
-                await sleep(1000); // 🔥 1 request per second
+                await sleep(500); // 🔥 1 request per second
             }
         }
 
