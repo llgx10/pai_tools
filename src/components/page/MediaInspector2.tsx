@@ -241,28 +241,10 @@ const MediaInspectorV2: React.FC = () => {
         }
 
         if (url.includes("youtube.com") || url.includes("youtu.be")) {
-            return (
-                <div style={{ width: "100%", height: "100%", position: "relative", paddingTop: "56.25%" }}>
-                    <div
-                        style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "100%",
-                        }}
-                        dangerouslySetInnerHTML={{
-                            __html: embedHtml
-                                ? embedHtml.replace(
-                                    /<iframe .*?>/,
-                                    `<iframe style="width:100%; height:100%;" `
-                                )
-                                : "",
-                        }}
-                    />
-                </div>
-            );
+            return <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center" }}
+                dangerouslySetInnerHTML={{ __html: embedHtml || "" }} />;
         }
+
         return <div>Unsupported media</div>;
     };
 
