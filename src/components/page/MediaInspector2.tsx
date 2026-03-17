@@ -175,7 +175,10 @@ const MediaInspectorV2: React.FC = () => {
         );
     };
 
+    const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 
+    // 🔥 simple cache (outside component so it's shared)
+    const tiktokCache = new Map<string, string | null>();
 
     const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
         const [embedHtml, setEmbedHtml] = useState<string | null>(null);
@@ -183,44 +186,76 @@ const MediaInspectorV2: React.FC = () => {
         const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
         useEffect(() => {
-            setLoading(true);
+            let isMounted = true;
 
-            if (url.includes("tiktok.com")) {
-                // Extract TikTok video ID from URL
-                const match = url.match(/video\/(\d+)/);
-                const videoId = match ? match[1] : null;
+            const fetchData = async () => {
+                setLoading(true);
 
-                if (videoId) {
-                    // TikTok oEmbed API returns JSON including thumbnail_url
-                    fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.thumbnail_url) {
-                                setThumbnailUrl(data.thumbnail_url);
-                            } else {
-                                setThumbnailUrl(null);
+                // 🔥 random delay to avoid rate limit burst
+                await sleep(300 + Math.random() * 500);
+
+                if (url.includes("tiktok.com")) {
+                    // ✅ check cache first
+                    if (tiktokCache.has(url)) {
+                        if (isMounted) {
+                            setThumbnailUrl(tiktokCache.get(url) || null);
+                            setLoading(false);
+                        }
+                        return;
+                    }
+
+                    const match = url.match(/video\/(\d+)/);
+                    const videoId = match ? match[1] : null;
+
+                    if (videoId) {
+                        try {
+                            const res = await fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`);
+                            const data = await res.json();
+
+                            const thumb = data.thumbnail_url || null;
+
+                            // ✅ store in cache
+                            tiktokCache.set(url, thumb);
+
+                            if (isMounted) {
+                                setThumbnailUrl(thumb);
                             }
-                        })
-                        .catch(err => {
+                        } catch (err) {
                             console.error(err);
+                            if (isMounted) setThumbnailUrl(null);
+                        } finally {
+                            if (isMounted) setLoading(false);
+                        }
+                    } else {
+                        if (isMounted) {
                             setThumbnailUrl(null);
-                        })
-                        .finally(() => setLoading(false));
+                            setLoading(false);
+                        }
+                    }
                 } else {
-                    setThumbnailUrl(null);
-                    setLoading(false);
-                }
-            } else {
-                // For YouTube / other embeds
-                fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`)
-                    .then(res => res.json())
-                    .then(data => setEmbedHtml(data.html || ""))
-                    .catch(err => {
+                    try {
+                        const res = await fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`);
+                        const data = await res.json();
+
+                        if (isMounted) {
+                            setEmbedHtml(data.html || "");
+                        }
+                    } catch (err) {
                         console.error(err);
-                        setEmbedHtml("<div>Failed to load embed</div>");
-                    })
-                    .finally(() => setLoading(false));
-            }
+                        if (isMounted) {
+                            setEmbedHtml("<div>Failed to load embed</div>");
+                        }
+                    } finally {
+                        if (isMounted) setLoading(false);
+                    }
+                }
+            };
+
+            fetchData();
+
+            return () => {
+                isMounted = false;
+            };
         }, [url]);
 
         if (loading) return <div style={{ textAlign: "center" }}>Loading embed...</div>;
@@ -241,23 +276,23 @@ const MediaInspectorV2: React.FC = () => {
         }
 
         if (url.includes("youtube.com") || url.includes("youtu.be")) {
-        const videoId = url.includes("youtu.be")
-            ? url.split("/").pop()
-            : new URL(url).searchParams.get("v");
-        if (!videoId) return null;
-        if (!embedHtml) return null;
-        return (
-            <iframe
-                width="100%"
-                height="100%"
-                src={`https://www.youtube.com/embed/${videoId}`}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title="YouTube video"
-            />
-        );
-    }
+            const videoId = url.includes("youtu.be")
+                ? url.split("/").pop()
+                : new URL(url).searchParams.get("v");
+            if (!videoId) return null;
+
+            return (
+                <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="YouTube video"
+                />
+            );
+        }
 
         return <div>Unsupported media</div>;
     };
@@ -777,7 +812,7 @@ const MediaInspectorV2: React.FC = () => {
                     }}>
 
                     <Title level={4} style={{ marginTop: 16, padding: 10 }}>Upload Excel or CSV File</Title>
-                    <Title level={5} style={{ marginTop: 16, padding: 0,color: 'red' }}>
+                    <Title level={5} style={{ marginTop: 16, padding: 0, color: 'red' }}>
                         **Now support FPK data**
                     </Title>
                     {!fileUploaded && (
