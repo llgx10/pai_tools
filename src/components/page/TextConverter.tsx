@@ -10,6 +10,7 @@ const TextConverter: React.FC = () => {
   const [toUppercase, setToUppercase] = useState(false);
   const [result, setResult] = useState("");
   const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
+  const [removeLinebreak, setRemoveLinebreak] = useState(false);
 
   // Update body background on theme change
   useEffect(() => {
@@ -26,9 +27,13 @@ const TextConverter: React.FC = () => {
     if (wrapChar) lines = lines.map(line => `${wrapChar}${line}${wrapChar}`);
     if (toUppercase) lines = lines.map(line => line.toUpperCase());
 
-    setResult(lines.join(separator + "\n"));
+    // ✅ Remove linebreak logic
+    if (removeLinebreak) {
+      setResult(lines.join(separator)); // no \n
+    } else {
+      setResult(lines.join(separator + "\n")); // normal behavior
+    }
   };
-
   const containerStyle: React.CSSProperties = {
     maxWidth: "700px",
     margin: "40px auto",
@@ -150,21 +155,35 @@ const TextConverter: React.FC = () => {
               />
             </label>
 
-            <label
+            <div
               style={{
                 display: "flex",
                 alignItems: "center",
+                gap: "20px",
                 marginTop: "10px",
+                flexWrap: "wrap",
               }}
             >
-              <input
-                type="checkbox"
-                checked={toUppercase}
-                onChange={e => setToUppercase(e.target.checked)}
-                style={{ marginRight: "8px" }}
-              />
-              Convert to uppercase
-            </label>
+              <label style={{ display: "flex", alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={toUppercase}
+                  onChange={e => setToUppercase(e.target.checked)}
+                  style={{ marginRight: "8px" }}
+                />
+                Convert to uppercase
+              </label>
+
+              <label style={{ display: "flex", alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={removeLinebreak}
+                  onChange={e => setRemoveLinebreak(e.target.checked)}
+                  style={{ marginRight: "8px" }}
+                />
+                Remove linebreak
+              </label>
+            </div>
           </div>
 
           <button

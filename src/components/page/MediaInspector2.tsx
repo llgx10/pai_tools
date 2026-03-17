@@ -178,7 +178,27 @@ const MediaInspectorV2: React.FC = () => {
 
 
 
+    const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
+        const [embedHtml, setEmbedHtml] = useState<string | null>(null);
+        const [loading, setLoading] = useState(true);
 
+        useEffect(() => {
+            setLoading(true);
+            fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`)
+                .then(res => res.json())
+                .then(data => {
+                    setEmbedHtml(data.html || "");
+                })
+                .catch(err => {
+                    console.error(err);
+                    setEmbedHtml("<div>Failed to load embed</div>");
+                })
+                .finally(() => setLoading(false));
+        }, [url]);
+
+        if (loading) return <div style={{ textAlign: "center" }}>Loading embed...</div>;
+        return <div style={{ width: "100%", height: "100%" }} dangerouslySetInnerHTML={{ __html: embedHtml || "" }} />;
+    };
 
     const [filterFaulty, setFilterFaulty] = useState(false);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
@@ -487,19 +507,28 @@ const MediaInspectorV2: React.FC = () => {
         setExportProgress(0);
     };
 
-    const renderMedia = (u?: string) =>
-        u?.match(/\.(mp4|webm|ogg)$/i) ? (
-            <video
-                src={u}
-                controls
-                style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            />
-        ) : u ? (
-            <img
-                src={u}
-                style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            />
-        ) : null;
+    const renderMedia = (u?: string) => {
+        if (!u) return null;
+
+        // 1️⃣ Local video
+        if (u.match(/\.(mp4|webm|ogg)$/i)) {
+            return (
+                <video
+                    src={u}
+                    controls
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                />
+            );
+        }
+
+        // 2️⃣ TikTok / YouTube
+        if (u.includes("tiktok.com") || u.includes("youtube.com") || u.includes("youtu.be")) {
+            return <EmbeddedMedia url={u} />;
+        }
+
+        // 3️⃣ Image
+        return <img src={u} style={{ width: "100%", height: "100%", objectFit: "contain" }} />;
+    };
 
 
 
