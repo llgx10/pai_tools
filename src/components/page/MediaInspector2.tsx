@@ -6,7 +6,7 @@ import ExcelJS from "exceljs";
 import throttle from 'lodash/throttle';
 import Header from '..//modals/Headers';
 import { useUnsavedChangesWarning } from "../../hooks/useUnsavedChangesWarning";
-
+import EmbeddedMedia from '../modals/EmbeddedMedia';
 
 import {
     Upload,
@@ -178,27 +178,27 @@ const MediaInspectorV2: React.FC = () => {
 
 
 
-    const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
-        const [embedHtml, setEmbedHtml] = useState<string | null>(null);
-        const [loading, setLoading] = useState(true);
+    // const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
+    //     const [embedHtml, setEmbedHtml] = useState<string | null>(null);
+    //     const [loading, setLoading] = useState(true);
 
-        useEffect(() => {
-            setLoading(true);
-            fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`)
-                .then(res => res.json())
-                .then(data => {
-                    setEmbedHtml(data.html || "");
-                })
-                .catch(err => {
-                    console.error(err);
-                    setEmbedHtml("<div>Failed to load embed</div>");
-                })
-                .finally(() => setLoading(false));
-        }, [url]);
+    //     useEffect(() => {
+    //         setLoading(true);
+    //         fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`)
+    //             .then(res => res.json())
+    //             .then(data => {
+    //                 setEmbedHtml(data.html || "");
+    //             })
+    //             .catch(err => {
+    //                 console.error(err);
+    //                 setEmbedHtml("<div>Failed to load embed</div>");
+    //             })
+    //             .finally(() => setLoading(false));
+    //     }, [url]);
 
-        if (loading) return <div style={{ textAlign: "center" }}>Loading embed...</div>;
-        return <div style={{ width: "100%", height: "100%" }} dangerouslySetInnerHTML={{ __html: embedHtml || "" }} />;
-    };
+    //     if (loading) return <div style={{ textAlign: "center" }}>Loading embed...</div>;
+    //     return <div style={{ width: "100%", height: "100%" }} dangerouslySetInnerHTML={{ __html: embedHtml || "" }} />;
+    // };
 
     const [filterFaulty, setFilterFaulty] = useState(false);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
