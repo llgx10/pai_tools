@@ -177,6 +177,29 @@ const MediaInspectorV2: React.FC = () => {
 
     const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 
+    const queue: (() => Promise<void>)[] = [];
+    let isProcessing = false;
+
+    const processQueue = async () => {
+        if (isProcessing) return;
+        isProcessing = true;
+
+        while (queue.length > 0) {
+            const task = queue.shift();
+            if (task) {
+                await task();
+                await sleep(1000); // 🔥 1 request per second
+            }
+        }
+
+        isProcessing = false;
+    };
+
+    const enqueue = (task: () => Promise<void>) => {
+        queue.push(task);
+        processQueue();
+    };
+
     // 🔥 simple cache (outside component so it's shared)
     const tiktokCache = new Map<string, string | null>();
 
@@ -191,62 +214,50 @@ const MediaInspectorV2: React.FC = () => {
             const fetchData = async () => {
                 setLoading(true);
 
-                // 🔥 random delay to avoid rate limit burst
-                await sleep(300 + Math.random() * 500);
-
                 if (url.includes("tiktok.com")) {
-                    // ✅ check cache first
+                    // ✅ cache first
                     if (tiktokCache.has(url)) {
-                        if (isMounted) {
-                            setThumbnailUrl(tiktokCache.get(url) || null);
-                            setLoading(false);
-                        }
+                        setThumbnailUrl(tiktokCache.get(url) || null);
+                        setLoading(false);
                         return;
                     }
 
-                    const match = url.match(/video\/(\d+)/);
-                    const videoId = match ? match[1] : null;
-
-                    if (videoId) {
+                    enqueue(async () => {
                         try {
                             const res = await fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`);
                             const data = await res.json();
 
                             const thumb = data.thumbnail_url || null;
 
-                            // ✅ store in cache
+                            // ✅ store cache
                             tiktokCache.set(url, thumb);
 
                             if (isMounted) {
                                 setThumbnailUrl(thumb);
+                                setLoading(false);
                             }
                         } catch (err) {
                             console.error(err);
-                            if (isMounted) setThumbnailUrl(null);
-                        } finally {
-                            if (isMounted) setLoading(false);
+                            if (isMounted) {
+                                setThumbnailUrl(null);
+                                setLoading(false);
+                            }
                         }
-                    } else {
-                        if (isMounted) {
-                            setThumbnailUrl(null);
-                            setLoading(false);
-                        }
-                    }
+                    });
                 } else {
+                    // YouTube stays fast (no limit needed)
                     try {
-                        const res = await fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`);
-                        const data = await res.json();
+                        const videoId = url.includes("youtu.be")
+                            ? url.split("/").pop()
+                            : new URL(url).searchParams.get("v");
 
-                        if (isMounted) {
-                            setEmbedHtml(data.html || "");
-                        }
+                        if (!videoId) return;
+
+                        setEmbedHtml(videoId);
                     } catch (err) {
                         console.error(err);
-                        if (isMounted) {
-                            setEmbedHtml("<div>Failed to load embed</div>");
-                        }
                     } finally {
-                        if (isMounted) setLoading(false);
+                        setLoading(false);
                     }
                 }
             };
