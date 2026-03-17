@@ -178,26 +178,74 @@ const MediaInspectorV2: React.FC = () => {
 
 
     const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
-        const [embedHtml, setEmbedHtml] = useState<string | null>(null);
-        const [loading, setLoading] = useState(true);
+    const [embedHtml, setEmbedHtml] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
-        useEffect(() => {
-            setLoading(true);
+    useEffect(() => {
+        setLoading(true);
+
+        if (url.includes("tiktok.com")) {
+            // Extract TikTok video ID from URL
+            const match = url.match(/video\/(\d+)/);
+            const videoId = match ? match[1] : null;
+
+            if (videoId) {
+                // TikTok oEmbed API returns JSON including thumbnail_url
+                fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.thumbnail_url) {
+                            setThumbnailUrl(data.thumbnail_url);
+                        } else {
+                            setThumbnailUrl(null);
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        setThumbnailUrl(null);
+                    })
+                    .finally(() => setLoading(false));
+            } else {
+                setThumbnailUrl(null);
+                setLoading(false);
+            }
+        } else {
+            // For YouTube / other embeds
             fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`)
                 .then(res => res.json())
-                .then(data => {
-                    setEmbedHtml(data.html || "");
-                })
+                .then(data => setEmbedHtml(data.html || ""))
                 .catch(err => {
                     console.error(err);
                     setEmbedHtml("<div>Failed to load embed</div>");
                 })
                 .finally(() => setLoading(false));
-        }, [url]);
+        }
+    }, [url]);
 
-        if (loading) return <div style={{ textAlign: "center" }}>Loading embed...</div>;
-        return <div style={{ width: "100%", height: "100%" }} dangerouslySetInnerHTML={{ __html: embedHtml || "" }} />;
-    };
+    if (loading) return <div style={{ textAlign: "center" }}>Loading embed...</div>;
+
+    if (url.includes("tiktok.com")) {
+        if (thumbnailUrl) {
+            return (
+                <a href={url} target="_blank" rel="noreferrer">
+                    <img
+                        src={thumbnailUrl}
+                        alt="TikTok video thumbnail"
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                </a>
+            );
+        }
+        return <div>Failed to load TikTok thumbnail</div>;
+    }
+
+    if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        return <div dangerouslySetInnerHTML={{ __html: embedHtml || "" }} />;
+    }
+
+    return <div>Unsupported media</div>;
+};
 
     const [filterFaulty, setFilterFaulty] = useState(false);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
