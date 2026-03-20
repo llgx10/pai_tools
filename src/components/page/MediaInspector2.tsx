@@ -181,28 +181,28 @@ const MediaInspectorV2: React.FC = () => {
     const queue: (() => Promise<void>)[] = [];
     let isProcessing = false;
 
-    const processQueue = async () => {
-        if (isProcessing) return;
-        isProcessing = true;
+    // const processQueue = async () => {
+    //     if (isProcessing) return;
+    //     isProcessing = true;
 
-        while (queue.length > 0) {
-            const task = queue.shift();
-            if (task) {
-                await task();
-                await sleep(500); // 🔥 1 request per second
-            }
-        }
+    //     while (queue.length > 0) {
+    //         const task = queue.shift();
+    //         if (task) {
+    //             await task();
+    //             await sleep(500); // 🔥 1 request per second
+    //         }
+    //     }
 
-        isProcessing = false;
-    };
+    //     isProcessing = false;
+    // };
 
-    const enqueue = (task: () => Promise<void>) => {
-        queue.push(task);
-        processQueue();
-    };
+    // const enqueue = (task: () => Promise<void>) => {
+    //     queue.push(task);
+    //     processQueue();
+    // };
 
-    // 🔥 simple cache (outside component so it's shared)
-    const tiktokCache = new Map<string, string | null>();
+    // // 🔥 simple cache (outside component so it's shared)
+    // const tiktokCache = new Map<string, string | null>();
 
     // const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
     //     const [embedHtml, setEmbedHtml] = useState<string | null>(null);
