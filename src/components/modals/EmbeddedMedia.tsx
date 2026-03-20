@@ -1,86 +1,114 @@
 import React, { useEffect, useState } from "react";
 
-// Memoized EmbeddedMedia component
-interface EmbeddedMediaProps {
-  url: string;
-}
+// ✅ GLOBAL cache + queue (reuse from before)
+const tiktokCache = new Map<string, string | null>();
 
-const EmbeddedMedia: React.FC<EmbeddedMediaProps> = React.memo(
+const queue: (() => Promise<void>)[] = [];
+let isProcessing = false;
+
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+const processQueue = async () => {
+  if (isProcessing) return;
+  isProcessing = true;
+
+  while (queue.length > 0) {
+    const task = queue.shift();
+    if (task) {
+      await task();
+      await sleep(1000); // 🔥 1 req/sec
+    }
+  }
+
+  isProcessing = false;
+};
+
+const enqueue = (task: () => Promise<void>) => {
+  queue.push(task);
+  processQueue();
+};
+
+const EmbeddedMedia: React.FC<{ url: string }> = React.memo(
   ({ url }) => {
-    const [embedHtml, setEmbedHtml] = useState<string | null>(null);
-    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+    const [thumbnail, setThumbnail] = useState<string | null>(null);
 
     useEffect(() => {
       let isMounted = true;
 
-      // Reset when URL changes
-      setEmbedHtml(null);
-      setThumbnailUrl(null);
-
-      // Simple cache object to avoid redundant fetches
-      const tiktokCache: Record<string, { embedHtml?: string; thumbnail?: string }> = {};
-
-      const loadMedia = async () => {
+      const loadThumbnail = async () => {
         if (!url) return;
 
-        // If cached, use cached values
-        if (tiktokCache[url]) {
-          if (isMounted) {
-            setEmbedHtml(tiktokCache[url].embedHtml || null);
-            setThumbnailUrl(tiktokCache[url].thumbnail || null);
-          }
+        // ✅ cache hit
+        if (tiktokCache.has(url)) {
+          if (isMounted) setThumbnail(tiktokCache.get(url)!);
           return;
         }
 
-        try {
-          // TikTok oEmbed
-          if (url.includes("tiktok.com")) {
-            const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
-            const data = await res.json();
-            tiktokCache[url] = { embedHtml: data.html, thumbnail: data.thumbnail_url };
-            if (isMounted) {
-              setEmbedHtml(data.html);
-              setThumbnailUrl(data.thumbnail_url);
+        // 🎯 TikTok → fetch thumbnail only
+        if (url.includes("tiktok.com")) {
+          enqueue(async () => {
+            try {
+              const res = await fetch(
+                `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`
+              );
+              const data = await res.json();
+
+              const thumb = data.thumbnail_url || null;
+
+              tiktokCache.set(url, thumb);
+
+              if (isMounted) setThumbnail(thumb);
+            } catch (err) {
+              console.error("TikTok thumbnail failed:", err);
+              if (isMounted) setThumbnail(null);
             }
-          }
+          });
+        }
 
-          // YouTube
-          else if (url.includes("youtube.com") || url.includes("youtu.be")) {
-            const videoId = url.split("v=")[1] || url.split("/").pop();
-            const embed = videoId ? `https://www.youtube.com/embed/${videoId}` : null;
-            if (embed && isMounted) setEmbedHtml(`<iframe src="${embed}" frameborder="0" allowfullscreen></iframe>`);
-          }
+        // 🎯 YouTube → use thumbnail directly (no API needed)
+        else if (url.includes("youtube.com") || url.includes("youtu.be")) {
+          const videoId =
+            url.includes("youtu.be")
+              ? url.split("/").pop()
+              : new URL(url).searchParams.get("v");
 
-          // Fallback for other URLs: show thumbnail if possible
-          else {
-            if (isMounted) setThumbnailUrl(url);
+          if (videoId && isMounted) {
+            setThumbnail(`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`);
           }
-        } catch (err) {
-          console.error("Failed to load media for URL:", url, err);
+        }
+
+        // 🎯 fallback image
+        else {
+          if (isMounted) setThumbnail(url);
         }
       };
 
-      loadMedia();
+      loadThumbnail();
 
       return () => {
-        isMounted = false; // cleanup
+        isMounted = false;
       };
     }, [url]);
 
-    // Render either iframe/embed HTML or thumbnail
+    if (!thumbnail) {
+      return <div style={{ textAlign: "center" }}>Loading...</div>;
+    }
+
     return (
-      <div style={{ width: 300, height: 300 }}>
-        {embedHtml ? (
-          <div dangerouslySetInnerHTML={{ __html: embedHtml }} />
-        ) : thumbnailUrl ? (
-          <img src={thumbnailUrl} alt="media thumbnail" style={{ maxWidth: "100%", maxHeight: "100%" }} />
-        ) : (
-          <div>Loading...</div>
-        )}
-      </div>
+      <a href={url} target="_blank" rel="noreferrer">
+        <img
+          src={thumbnail}
+          alt="thumbnail"
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            cursor: "pointer",
+          }}
+        />
+      </a>
     );
   },
-  // Only rerender if URL changes
   (prev, next) => prev.url === next.url
 );
 

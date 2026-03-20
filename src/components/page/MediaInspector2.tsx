@@ -631,13 +631,18 @@ const MediaInspectorV2: React.FC = () => {
             );
         }
 
-        // 2️⃣ TikTok / YouTube
+        // 2️⃣ TikTok / YouTube → thumbnail mode
         if (u.includes("tiktok.com") || u.includes("youtube.com") || u.includes("youtu.be")) {
             return <EmbeddedMedia url={u} />;
         }
 
         // 3️⃣ Image
-        return <img src={u} style={{ width: "100%", height: "100%", objectFit: "contain" }} />;
+        return (
+            <img
+                src={u}
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+        );
     };
 
 
