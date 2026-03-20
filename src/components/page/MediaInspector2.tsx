@@ -176,10 +176,10 @@ const MediaInspectorV2: React.FC = () => {
         );
     };
 
-    const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+    // const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-    const queue: (() => Promise<void>)[] = [];
-    let isProcessing = false;
+    // const queue: (() => Promise<void>)[] = [];
+    // let isProcessing = false;
 
     // const processQueue = async () => {
     //     if (isProcessing) return;
