@@ -101,7 +101,7 @@ const EmbeddedMedia: React.FC<{ url: string }> = React.memo(
           alt="thumbnail"
           style={{
             width: "100%",
-            height: "160px",
+            height: "100%",
             objectFit: "cover",
             cursor: "pointer",
           }}
