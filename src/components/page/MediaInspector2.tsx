@@ -631,12 +631,33 @@ const MediaInspectorV2: React.FC = () => {
             );
         }
 
-        // 2️⃣ TikTok / YouTube → thumbnail mode
-        if (u.includes("tiktok.com") || u.includes("youtube.com") || u.includes("youtu.be")) {
+        // 2️⃣ YouTube → direct embed (NO state, NO effect)
+        if (u.includes("youtube.com") || u.includes("youtu.be")) {
+            const videoId = u.includes("youtu.be")
+                ? u.split("/").pop()
+                : new URL(u).searchParams.get("v");
+
+            if (!videoId) return null;
+
+            return (
+                <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="YouTube video"
+                />
+            );
+        }
+
+        // 3️⃣ TikTok → thumbnail component (rate limited)
+        if (u.includes("tiktok.com")) {
             return <EmbeddedMedia url={u} />;
         }
 
-        // 3️⃣ Image
+        // 4️⃣ Image fallback
         return (
             <img
                 src={u}
