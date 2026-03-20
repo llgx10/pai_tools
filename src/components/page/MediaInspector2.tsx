@@ -5,6 +5,7 @@ import Papa from "papaparse";
 import ExcelJS from "exceljs";
 import throttle from 'lodash/throttle';
 import Header from '..//modals/Headers';
+import EmbeddedMedia from '..//modals/EmbeddedMedia';
 import { useUnsavedChangesWarning } from "../../hooks/useUnsavedChangesWarning";
 
 import {
@@ -203,111 +204,111 @@ const MediaInspectorV2: React.FC = () => {
     // 🔥 simple cache (outside component so it's shared)
     const tiktokCache = new Map<string, string | null>();
 
-    const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
-        const [embedHtml, setEmbedHtml] = useState<string | null>(null);
-        const [loading, setLoading] = useState(true);
-        const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+    // const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
+    //     const [embedHtml, setEmbedHtml] = useState<string | null>(null);
+    //     const [loading, setLoading] = useState(true);
+    //     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
-        useEffect(() => {
-            let isMounted = true;
+    //     useEffect(() => {
+    //         let isMounted = true;
 
-            const fetchData = async () => {
-                setLoading(true);
+    //         const fetchData = async () => {
+    //             setLoading(true);
 
-                if (url.includes("tiktok.com")) {
-                    // ✅ cache first
-                    if (tiktokCache.has(url)) {
-                        setThumbnailUrl(tiktokCache.get(url) || null);
-                        setLoading(false);
-                        return;
-                    }
+    //             if (url.includes("tiktok.com")) {
+    //                 // ✅ cache first
+    //                 if (tiktokCache.has(url)) {
+    //                     setThumbnailUrl(tiktokCache.get(url) || null);
+    //                     setLoading(false);
+    //                     return;
+    //                 }
 
-                    enqueue(async () => {
-                        try {
-                            const res = await fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`);
-                            const data = await res.json();
+    //                 enqueue(async () => {
+    //                     try {
+    //                         const res = await fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`);
+    //                         const data = await res.json();
 
-                            const thumb = data.thumbnail_url || null;
+    //                         const thumb = data.thumbnail_url || null;
 
-                            // ✅ store cache
-                            tiktokCache.set(url, thumb);
+    //                         // ✅ store cache
+    //                         tiktokCache.set(url, thumb);
 
-                            if (isMounted) {
-                                setThumbnailUrl(thumb);
-                                setLoading(false);
-                            }
-                        } catch (err) {
-                            console.error(err);
-                            if (isMounted) {
-                                setThumbnailUrl(null);
-                                setLoading(false);
-                            }
-                        }
-                    });
-                } else {
-                    // YouTube stays fast (no limit needed)
-                    try {
-                        const videoId = url.includes("youtu.be")
-                            ? url.split("/").pop()
-                            : new URL(url).searchParams.get("v");
+    //                         if (isMounted) {
+    //                             setThumbnailUrl(thumb);
+    //                             setLoading(false);
+    //                         }
+    //                     } catch (err) {
+    //                         console.error(err);
+    //                         if (isMounted) {
+    //                             setThumbnailUrl(null);
+    //                             setLoading(false);
+    //                         }
+    //                     }
+    //                 });
+    //             } else {
+    //                 // YouTube stays fast (no limit needed)
+    //                 try {
+    //                     const videoId = url.includes("youtu.be")
+    //                         ? url.split("/").pop()
+    //                         : new URL(url).searchParams.get("v");
 
-                        if (!videoId) return;
+    //                     if (!videoId) return;
 
-                        setEmbedHtml(videoId);
-                    } catch (err) {
-                        console.error(err);
-                    } finally {
-                        setLoading(false);
-                    }
-                }
-            };
+    //                     setEmbedHtml(videoId);
+    //                 } catch (err) {
+    //                     console.error(err);
+    //                 } finally {
+    //                     setLoading(false);
+    //                 }
+    //             }
+    //         };
 
-            fetchData();
+    //         fetchData();
 
-            return () => {
-                isMounted = false;
-            };
-        }, [url]);
+    //         return () => {
+    //             isMounted = false;
+    //         };
+    //     }, [url]);
 
-        if (loading) return <div style={{ textAlign: "center" }}>Loading embed...</div>;
+    //     if (loading) return <div style={{ textAlign: "center" }}>Loading embed...</div>;
 
-        if (url.includes("tiktok.com")) {
-            if (thumbnailUrl) {
-                return (
-                    <a href={url} target="_blank" rel="noreferrer">
-                        <img
-                            src={thumbnailUrl}
-                            alt="TikTok video thumbnail"
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                    </a>
-                );
-            }
-            return <div>Failed to load TikTok thumbnail</div>;
-        }
+    //     if (url.includes("tiktok.com")) {
+    //         if (thumbnailUrl) {
+    //             return (
+    //                 <a href={url} target="_blank" rel="noreferrer">
+    //                     <img
+    //                         src={thumbnailUrl}
+    //                         alt="TikTok video thumbnail"
+    //                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
+    //                     />
+    //                 </a>
+    //             );
+    //         }
+    //         return <div>Failed to load TikTok thumbnail</div>;
+    //     }
 
-        if (url.includes("youtube.com") || url.includes("youtu.be")) {
-            const videoId = url.includes("youtu.be")
-                ? url.split("/").pop()
-                : new URL(url).searchParams.get("v");
-            if (!videoId) return null;
-            if(!embedHtml) return null;
+    //     if (url.includes("youtube.com") || url.includes("youtu.be")) {
+    //         const videoId = url.includes("youtu.be")
+    //             ? url.split("/").pop()
+    //             : new URL(url).searchParams.get("v");
+    //         if (!videoId) return null;
+    //         if(!embedHtml) return null;
 
-            return (
-                <iframe
-                    width="100%"
-                    height="100%"
-                    src={`https://www.youtube.com/embed/${videoId}`}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    title="YouTube video"
-                />
-            );
-        }
+    //         return (
+    //             <iframe
+    //                 width="100%"
+    //                 height="100%"
+    //                 src={`https://www.youtube.com/embed/${videoId}`}
+    //                 frameBorder="0"
+    //                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    //                 allowFullScreen
+    //                 title="YouTube video"
+    //             />
+    //         );
+    //     }
 
-        return <div>Unsupported media</div>;
-    };
+    //     return <div>Unsupported media</div>;
+    // };
 
     const [filterFaulty, setFilterFaulty] = useState(false);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
