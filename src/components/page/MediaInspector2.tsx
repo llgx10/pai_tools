@@ -34,7 +34,7 @@ import { InboxOutlined, InfoCircleOutlined, EyeOutlined, EyeInvisibleOutlined } 
 
 type RowData = { [key: string]: any; media?: string; remark?: string };
 
-const CHUNK_SIZE = 25;
+const CHUNK_SIZE = 10;
 const { Dragger } = Upload;
 const { Search } = Input;
 const { Title } = Typography;
@@ -147,7 +147,80 @@ const getSortedColoredColumns = (allKeys: string[], themeMode: 'light' | 'dark')
 
     return sortedColumns;
 };
+const renderMedia = (u?: string) => {
+    if (!u) return null;
 
+    // 1️⃣ Local video
+    if (u.match(/\.(mp4|webm|ogg)$/i)) {
+        return (
+            <video
+                src={u}
+                controls
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+        );
+    }
+
+    // 2️⃣ YouTube → direct embed (NO state, NO effect)
+    if (u.includes("youtube.com") || u.includes("youtu.be")) {
+        const videoId = u.includes("youtu.be")
+            ? u.split("/").pop()
+            : new URL(u).searchParams.get("v");
+
+        if (!videoId) return null;
+
+        return (
+            <iframe
+                width="100%"
+                height="120%"
+                src={`https://www.youtube.com/embed/${videoId}`}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="YouTube video"
+            />
+        );
+    }
+
+    // 3️⃣ TikTok → thumbnail component (rate limited)
+    if (u.includes("tiktok.com")) {
+        return <EmbeddedMedia url={u} />;
+    }
+
+    // 4️⃣ Image fallback
+    return (
+        <img
+            src={u}
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+        />
+    );
+};
+const LazyMedia = React.memo(({ url }: { url?: string }) => {
+    const [visible, setVisible] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setVisible(true);
+                    observer.disconnect();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (ref.current) observer.observe(ref.current);
+
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+       <div ref={ref} style={{ height: "100%", width: "100%" }}>
+            {visible ? renderMedia(url) : <div>Loading...</div>}
+        </div>
+    );
+});
 
 const MediaInspectorV2: React.FC = () => {
     // --- State ---
@@ -176,139 +249,6 @@ const MediaInspectorV2: React.FC = () => {
         );
     };
 
-    // const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
-
-    // const queue: (() => Promise<void>)[] = [];
-    // let isProcessing = false;
-
-    // const processQueue = async () => {
-    //     if (isProcessing) return;
-    //     isProcessing = true;
-
-    //     while (queue.length > 0) {
-    //         const task = queue.shift();
-    //         if (task) {
-    //             await task();
-    //             await sleep(500); // 🔥 1 request per second
-    //         }
-    //     }
-
-    //     isProcessing = false;
-    // };
-
-    // const enqueue = (task: () => Promise<void>) => {
-    //     queue.push(task);
-    //     processQueue();
-    // };
-
-    // // 🔥 simple cache (outside component so it's shared)
-    // const tiktokCache = new Map<string, string | null>();
-
-    // const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
-    //     const [embedHtml, setEmbedHtml] = useState<string | null>(null);
-    //     const [loading, setLoading] = useState(true);
-    //     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-
-    //     useEffect(() => {
-    //         let isMounted = true;
-
-    //         const fetchData = async () => {
-    //             setLoading(true);
-
-    //             if (url.includes("tiktok.com")) {
-    //                 // ✅ cache first
-    //                 if (tiktokCache.has(url)) {
-    //                     setThumbnailUrl(tiktokCache.get(url) || null);
-    //                     setLoading(false);
-    //                     return;
-    //                 }
-
-    //                 enqueue(async () => {
-    //                     try {
-    //                         const res = await fetch(`/api/getEmbededLink?url=${encodeURIComponent(url)}`);
-    //                         const data = await res.json();
-
-    //                         const thumb = data.thumbnail_url || null;
-
-    //                         // ✅ store cache
-    //                         tiktokCache.set(url, thumb);
-
-    //                         if (isMounted) {
-    //                             setThumbnailUrl(thumb);
-    //                             setLoading(false);
-    //                         }
-    //                     } catch (err) {
-    //                         console.error(err);
-    //                         if (isMounted) {
-    //                             setThumbnailUrl(null);
-    //                             setLoading(false);
-    //                         }
-    //                     }
-    //                 });
-    //             } else {
-    //                 // YouTube stays fast (no limit needed)
-    //                 try {
-    //                     const videoId = url.includes("youtu.be")
-    //                         ? url.split("/").pop()
-    //                         : new URL(url).searchParams.get("v");
-
-    //                     if (!videoId) return;
-
-    //                     setEmbedHtml(videoId);
-    //                 } catch (err) {
-    //                     console.error(err);
-    //                 } finally {
-    //                     setLoading(false);
-    //                 }
-    //             }
-    //         };
-
-    //         fetchData();
-
-    //         return () => {
-    //             isMounted = false;
-    //         };
-    //     }, [url]);
-
-    //     if (loading) return <div style={{ textAlign: "center" }}>Loading embed...</div>;
-
-    //     if (url.includes("tiktok.com")) {
-    //         if (thumbnailUrl) {
-    //             return (
-    //                 <a href={url} target="_blank" rel="noreferrer">
-    //                     <img
-    //                         src={thumbnailUrl}
-    //                         alt="TikTok video thumbnail"
-    //                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
-    //                     />
-    //                 </a>
-    //             );
-    //         }
-    //         return <div>Failed to load TikTok thumbnail</div>;
-    //     }
-
-    //     if (url.includes("youtube.com") || url.includes("youtu.be")) {
-    //         const videoId = url.includes("youtu.be")
-    //             ? url.split("/").pop()
-    //             : new URL(url).searchParams.get("v");
-    //         if (!videoId) return null;
-    //         if(!embedHtml) return null;
-
-    //         return (
-    //             <iframe
-    //                 width="100%"
-    //                 height="100%"
-    //                 src={`https://www.youtube.com/embed/${videoId}`}
-    //                 frameBorder="0"
-    //                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-    //                 allowFullScreen
-    //                 title="YouTube video"
-    //             />
-    //         );
-    //     }
-
-    //     return <div>Unsupported media</div>;
-    // };
 
     const [filterFaulty, setFilterFaulty] = useState(false);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
@@ -398,41 +338,24 @@ const MediaInspectorV2: React.FC = () => {
         setCampaignData(Object.entries(cmp).map(([id, value]) => ({ id, value })));
     }, [allData]);
 
-    // Filtering & Sorting
-    // const keywordFiltered = allData
-    //     .map((row, idx) => ({ row, originalIndex: idx }))
-    //     .filter(({ row }) =>
-    //         searchKeywords.every((kw) =>
-    //             Object.values(row)
-    //                 .filter((v) => typeof v === "string" || typeof v === "number")
-    //                 .join(" ")
-    //                 .toLowerCase()
-    //                 .includes(kw.toLowerCase())
-    //         )
-    //     );
+    const filteredData = useMemo(() => {
+        return (filterFaulty
+            ? allData.filter((row) => row.isFaulty)
+            : allData
+        ).filter((row) => {
+            if (activeAdvertiser && row.ADVERTISER_NAME !== activeAdvertiser) return false;
+            if (activeCampaign && row.CREATIVE_CAMPAIGN_NAME !== activeCampaign) return false;
 
-
-
-    const filteredData = (filterFaulty
-        ? allData.filter((row) => row.isFaulty)
-        : allData
-    ).filter((row) => {
-        if (activeAdvertiser && row.ADVERTISER_NAME !== activeAdvertiser) return false;
-        if (activeCampaign && row.CREATIVE_CAMPAIGN_NAME !== activeCampaign) return false;
-
-        return (
-            !hiddenFilters.advertisers.has(row.ADVERTISER_NAME) &&
-            !hiddenFilters.campaigns.has(row.CREATIVE_CAMPAIGN_NAME)
-        );
-    });
+            return (
+                !hiddenFilters.advertisers.has(row.ADVERTISER_NAME) &&
+                !hiddenFilters.campaigns.has(row.CREATIVE_CAMPAIGN_NAME)
+            );
+        });
+    }, [allData, filterFaulty, activeAdvertiser, activeCampaign, hiddenFilters]);
 
     const keywordFiltered = filteredData.filter((row) =>
         searchKeywords.every((kw) =>
-            Object.values(row)
-                .filter((v) => typeof v === "string" || typeof v === "number")
-                .join(" ")
-                .toLowerCase()
-                .includes(kw.toLowerCase())
+            row.__search.includes(kw.toLowerCase())
         )
     );
     const toggleHideAdvertiser = (name: string) => {
@@ -513,6 +436,7 @@ const MediaInspectorV2: React.FC = () => {
     }, [sortedData]);
 
 
+
     const currentChunkRef = useRef(currentChunk);
     useEffect(() => {
         currentChunkRef.current = currentChunk;
@@ -564,6 +488,12 @@ const MediaInspectorV2: React.FC = () => {
                     isFaulty: typeof r.isFaulty === "boolean"
                         ? r.isFaulty
                         : ["true", "yes", "1"].includes(String(r.isFaulty).toLowerCase()),
+
+                    // PRECOMPUTED SEARCH STRING
+                    __search: Object.values(r)
+                        .filter((v) => typeof v === "string" || typeof v === "number")
+                        .join(" ")
+                        .toLowerCase(),
                 }));
                 setAllData(withMedia);
                 // setVisibleData(withMedia.slice(0, CHUNK_SIZE));
@@ -617,54 +547,7 @@ const MediaInspectorV2: React.FC = () => {
         setExportProgress(0);
     };
 
-    const renderMedia = (u?: string) => {
-        if (!u) return null;
 
-        // 1️⃣ Local video
-        if (u.match(/\.(mp4|webm|ogg)$/i)) {
-            return (
-                <video
-                    src={u}
-                    controls
-                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                />
-            );
-        }
-
-        // 2️⃣ YouTube → direct embed (NO state, NO effect)
-        if (u.includes("youtube.com") || u.includes("youtu.be")) {
-            const videoId = u.includes("youtu.be")
-                ? u.split("/").pop()
-                : new URL(u).searchParams.get("v");
-
-            if (!videoId) return null;
-
-            return (
-                <iframe
-                    width="100%"
-                    height="120%"
-                    src={`https://www.youtube.com/embed/${videoId}`}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    title="YouTube video"
-                />
-            );
-        }
-
-        // 3️⃣ TikTok → thumbnail component (rate limited)
-        if (u.includes("tiktok.com")) {
-            return <EmbeddedMedia url={u} />;
-        }
-
-        // 4️⃣ Image fallback
-        return (
-            <img
-                src={u}
-                style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            />
-        );
-    };
 
 
 
@@ -707,49 +590,6 @@ const MediaInspectorV2: React.FC = () => {
 
 
 
-    // const advertiserActionColumn = {
-    //     title: "",
-    //     key: "advertiser_action",
-    //     width: 40,
-    //     fixed: "left" as const,
-    //     render: (_: any, record: any) => (
-    //         <Tooltip title="Show only this advertiser">
-    //             <Button
-    //                 size="small"
-    //                 type={activeAdvertiser === record.ADVERTISER_NAME ? "primary" : "text"}
-    //                 onClick={() =>
-    //                     setActiveAdvertiser(prev =>
-    //                         prev === record.ADVERTISER_NAME ? null : record.ADVERTISER_NAME
-    //                     )
-    //                 }
-    //             >
-    //                 🎯
-    //             </Button>
-    //         </Tooltip>
-    //     ),
-    // };
-
-    // const campaignActionColumn = {
-    //     title: "",
-    //     key: "campaign_action",
-    //     width: 40,
-    //     render: (_: any, record: any) => (
-    //         <Tooltip title="Show only this campaign">
-    //             <Button
-    //                 size="small"
-    //                 type={activeCampaign === record.CREATIVE_CAMPAIGN_NAME ? "primary" : "text"}
-    //                 onClick={() =>
-    //                     setActiveCampaign(prev =>
-    //                         prev === record.CREATIVE_CAMPAIGN_NAME ? null : record.CREATIVE_CAMPAIGN_NAME
-    //                     )
-    //                 }
-    //             >
-    //                 🎯
-    //             </Button>
-    //         </Tooltip>
-    //     ),
-    // };
-
 
     // --- Columns for Table ---
     const dynamicColumns = getSortedColoredColumns(baseKeys, themeMode).filter(col => visibleColumns.includes(col.key));
@@ -766,7 +606,9 @@ const MediaInspectorV2: React.FC = () => {
                     verticalAlign: "middle",
                 },
             }),
-            render: (_: any, record: any) => renderMedia(record.media),
+            render: (_: any, record: any) => (
+                <LazyMedia url={record.media} />
+            )
         },
         {
             title: "Remark",
