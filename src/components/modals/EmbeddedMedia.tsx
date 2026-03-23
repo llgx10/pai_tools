@@ -95,7 +95,7 @@ const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
         fontSize: 12,
         color: "#999"
       }}>
-        Invalid TikTok photo
+        TikTok Photo URLs are not supported
       </div>
     );
   }
