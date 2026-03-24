@@ -94,7 +94,7 @@ const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
         fontSize: 12,
         color: "#999"
       }}>
-        Invalid TikTok Video URL
+        Video thumbnail cannot be fetched (removed/private video or invalid URL)
       </div>
     );
   }
