@@ -34,7 +34,7 @@ import { InboxOutlined, InfoCircleOutlined, EyeOutlined, EyeInvisibleOutlined } 
 
 type RowData = { [key: string]: any; media?: string; remark?: string };
 
-const CHUNK_SIZE = 10;
+const CHUNK_SIZE = 35;
 const { Dragger } = Upload;
 const { Search } = Input;
 const { Title } = Typography;
