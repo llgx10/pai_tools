@@ -1,13 +1,37 @@
 import { useState } from 'react';
-import { Link  } from 'react-router-dom';
-import { Film,ALargeSmall,Hammer  } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Film, ALargeSmall, Hammer } from 'lucide-react';
 import { ConfigProvider, FloatButton, theme as antdTheme } from 'antd';
 import { BulbOutlined } from '@ant-design/icons';
-import 'antd/dist/reset.css'; // Reset Ant Design styles
-import AppHeader from "./components/modals/Headers";
+import 'antd/dist/reset.css';
+// import AppHeader from './components/modals/Headers';
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const tiles = [
+    {
+      title: 'Media Inspector v2',
+      icon: <Film className="text-3xl" />,
+      link: '/media-inspector2',
+      color: 'bg-green-600',
+      hoverColor: 'hover:bg-green-700',
+    },
+    {
+      title: 'Text Converter',
+      icon: <ALargeSmall className="text-3xl" />,
+      link: '/text-converter',
+      color: 'bg-orange-600',
+      hoverColor: 'hover:bg-orange-700',
+    },
+    {
+      title: 'Query Builder',
+      icon: <Hammer className="text-3xl" />,
+      link: '/query-builder',
+      color: 'bg-purple-600',
+      hoverColor: 'hover:bg-purple-700',
+    },
+  ];
 
   return (
     <ConfigProvider
@@ -15,50 +39,32 @@ function App() {
         algorithm: isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
       }}
     >
-      <AppHeader />
+      {/* <AppHeader /> */}
+
       <div
-        className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
+        className={`min-h-screen flex flex-col items-center justify-start transition-colors duration-300 ${
           isDarkMode ? 'bg-[#141414]' : 'bg-gray-100'
-        } py-12 px-6`}
+        } py-12 px-4`}
       >
-        <div
-          className={`max-w-md w-full space-y-6 p-8 rounded-lg shadow-lg text-center transition-colors duration-300 ${
-            isDarkMode ? 'bg-[#1f1f1f] text-white' : 'bg-white text-black'
+        <h1
+          className={`text-4xl font-bold mb-12 ${
+            isDarkMode ? 'text-blue-400' : 'text-blue-600'
           }`}
         >
-          <h1 className="text-3xl font-semibold text-blue-600 mb-6">PAI Tools</h1>
+          PAI Tools
+        </h1>
 
-          <div className="flex flex-col gap-6">
-            {/* <Link
-              to="/media-inspector"
-              className="flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition duration-200"
-            >
-              <Film className="text-2xl mr-2" />
-              Media Inspector
-            </Link> */}
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-4xl">
+          {tiles.map((tile) => (
             <Link
-              to="/media-inspector2"
-              className="flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition duration-200"
+              key={tile.title}
+              to={tile.link}
+              className={`flex flex-col items-center justify-center gap-4 p-6 rounded-lg shadow-md transition duration-200 text-white ${tile.color} ${tile.hoverColor}`}
             >
-              <Film className="text-2xl mr-2" />
-              Media Inspector v2
+              {tile.icon}
+              <span className="text-lg font-semibold">{tile.title}</span>
             </Link>
-            <Link
-              to="/text-converter"
-              className="flex items-center justify-center px-6 py-3 bg-orange-600 text-white rounded-full hover:bg-green-700 transition duration-200"
-            >
-              <ALargeSmall  className="text-2xl mr-2" />
-              Text Converter
-            </Link>
-            <Link
-              to="/query-builder"
-              className="flex items-center justify-center px-6 py-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition duration-200"
-            >
-              <Hammer   className="text-2xl mr-2" />
-              Query Builder
-            </Link>
-          </div>
+          ))}
         </div>
       </div>
 

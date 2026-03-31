@@ -12,7 +12,8 @@ import PagePreview from './components/page/PagePreview';
 import MediaInspectorV2 from './components/page/MediaInspector2';
 import TextConverter from './components/page/TextConverter';
 import QueryBuilder from './components/page/QueryBuilder';
-
+import MediaInspectorV3 from './components/page/media_inspector3';
+import ESOVCalculator from './components/page/eSOVCalculator';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -26,6 +27,8 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/media-inspector2" element={<MediaInspectorV2 />} />
          <Route path="/text-converter" element={<TextConverter />} />
         <Route path="/query-builder" element={<QueryBuilder />} />
+        <Route path="/media-inspector3" element={<MediaInspectorV3 />} />
+        <Route path="/esov-calculator" element={<ESOVCalculator />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
