@@ -29,7 +29,7 @@ const eSOVCalculator: React.FC = () => {
     const [result, setResult] = useState<DataRow[]>([]);
     const [metric, setMetric] = useState<"eSOV" | "spend" | "share">("eSOV");
     const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
-
+    console.log("spendFile", spendFile, "searchData", searchData);
     const searchFilesDataRef = useRef<RowData[][]>([]);
 
     const handleSearchUpload = async (file: File) => {
