@@ -61,9 +61,15 @@ export const UploadSection: React.FC<Props> = ({ onUpload, themeMode = "light" }
       ) : (
         <Dragger
           multiple
-          showUploadList={false} // hide default list
+          showUploadList={false}
           beforeUpload={handleBeforeUpload}
-          style={{ padding: 20 }}
+          style={{
+            padding: 20,
+            background: themeColors.cardBg,  // <--- add this
+            border: `2px dashed ${themeColors.border}`, // optional: highlight border inside drag area
+            borderRadius: 8,
+            cursor: "pointer",
+          }}
         >
           <UploadOutlined style={{ fontSize: 24, color: themeColors.icon }} />
           <p style={{ marginTop: 8, color: themeColors.text }}>Drag file here or click to upload</p>

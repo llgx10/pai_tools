@@ -1,21 +1,34 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Film, ALargeSmall, Hammer } from 'lucide-react';
+import { Film, ALargeSmall, Hammer, BarChart2 } from 'lucide-react';
 import { ConfigProvider, FloatButton, theme as antdTheme } from 'antd';
 import { BulbOutlined } from '@ant-design/icons';
 import 'antd/dist/reset.css';
-// import AppHeader from './components/modals/Headers';
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   const tiles = [
     {
+      title: 'Media Inspector v3',
+      icon: <Film className="text-3xl" />,
+      link: '/media-inspector3',
+      color: 'bg-green-600',
+      hoverColor: 'hover:bg-green-700',
+    },
+    {
+      title: 'eSOV Calculator',
+      icon: <BarChart2 className="text-3xl" />,
+      link: '/esov-calculator',
+      color: 'bg-blue-600',
+      hoverColor: 'hover:bg-blue-700',
+    },
+    {
       title: 'Media Inspector v2',
       icon: <Film className="text-3xl" />,
       link: '/media-inspector2',
-      color: 'bg-green-600',
-      hoverColor: 'hover:bg-green-700',
+      color: 'bg-green-500',
+      hoverColor: 'hover:bg-green-600',
     },
     {
       title: 'Text Converter',
@@ -39,8 +52,6 @@ function App() {
         algorithm: isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
       }}
     >
-      {/* <AppHeader /> */}
-
       <div
         className={`min-h-screen flex flex-col items-center justify-start transition-colors duration-300 ${
           isDarkMode ? 'bg-[#141414]' : 'bg-gray-100'
@@ -68,7 +79,6 @@ function App() {
         </div>
       </div>
 
-      {/* Floating Theme Toggle Button */}
       <FloatButton
         icon={<BulbOutlined />}
         type="primary"
