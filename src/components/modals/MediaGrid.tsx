@@ -1,6 +1,6 @@
 // src/components/modals/MediaGrid.tsx
 import React, { useState, useEffect } from "react";
-import { Card, Modal, Tag, Input, Checkbox } from "antd";
+import { Card, Modal, Input, Checkbox } from "antd";
 import { LazyMedia } from "./LazyMedia";
 import FaultySelectorModal, { FaultyOn } from "./FaultySelectorModal";
 import type { RowData } from "../../types/RowData";
