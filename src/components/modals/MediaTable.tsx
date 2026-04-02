@@ -50,8 +50,13 @@ export const MediaTable: React.FC<Props> = ({
     const dataKeys = data.length ? Object.keys(data[0]) : [];
     const cellStyle = { whiteSpace: "normal" as const, wordBreak: "break-word" as const, maxWidth: 250 };
 
-    const indexColumn: ColumnsType<RowData>[number] = { title: "#", key: "index", width: 60, fixed: "left", render: (_, __, i) => i + 1 };
-
+    const indexColumn: ColumnsType<RowData>[number] = {
+        title: "#",
+        key: "#",
+        width: 60,
+        fixed: "left",
+        render: (_, __, i) => i + 1
+    };
     const dynamicColumns: ColumnsType<RowData> = dataKeys
         .filter(key => !["media", "remark", "isFaulty"].includes(key))
         .map(key => ({
@@ -98,7 +103,7 @@ export const MediaTable: React.FC<Props> = ({
 
     const allColumns: ColumnsType<RowData> = [indexColumn, ...dynamicColumns, mediaColumn, remarkColumn, faultyColumn];
 
-    const ALWAYS_VISIBLE = ["media", "remark", "isFaulty"];
+    const ALWAYS_VISIBLE = [, "media", "remark", "isFaulty"];
     const columns =
         visibleColumns.length > 0
             ? allColumns.filter(
