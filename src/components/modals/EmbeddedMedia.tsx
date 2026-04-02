@@ -27,8 +27,13 @@ const enqueue = (task: () => Promise<void>) => {
   processQueue();
 };
 
-const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
-  const [thumbnail, setThumbnail] = useState<string | "INVALID_VIDEO" | "INVALID_PHOTO" | null>(null);
+const EmbeddedMedia: React.FC<{ url: string; disableLink?: boolean }> = ({
+  url,
+  disableLink = false
+}) => {
+  const [thumbnail, setThumbnail] = useState<
+    string | "INVALID_VIDEO" | "INVALID_PHOTO" | null
+  >(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -60,7 +65,10 @@ const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
       // Enqueue video thumbnail fetch
       enqueue(async () => {
         try {
-          const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
+          const res = await fetch(
+            `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`
+          );
+
           if (!res.ok) {
             tiktokCache.set(url, "INVALID_VIDEO");
             if (isMounted) setThumbnail("INVALID_VIDEO");
@@ -69,31 +77,38 @@ const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
 
           const data = await res.json();
           const thumb = data.thumbnail_url || "INVALID_VIDEO";
+
           tiktokCache.set(url, thumb);
 
           if (isMounted) setThumbnail(thumb);
         } catch (err) {
           console.error("TikTok fetch failed:", err);
+
           tiktokCache.set(url, "INVALID_VIDEO");
+
           if (isMounted) setThumbnail("INVALID_VIDEO");
         }
       });
     }
 
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [url]);
 
   // Render messages based on type
   if (thumbnail === "INVALID_VIDEO") {
     return (
-      <div style={{
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 12,
-        color: "#999"
-      }}>
+      <div
+        style={{
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 12,
+          color: "#999"
+        }}
+      >
         Video thumbnail cannot be fetched (removed/private video or invalid URL)
       </div>
     );
@@ -101,14 +116,16 @@ const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
 
   if (thumbnail === "INVALID_PHOTO") {
     return (
-      <div style={{
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 12,
-        color: "#999"
-      }}>
+      <div
+        style={{
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 12,
+          color: "#999"
+        }}
+      >
         TikTok Photo URLs are not supported
       </div>
     );
@@ -118,14 +135,26 @@ const EmbeddedMedia: React.FC<{ url: string }> = ({ url }) => {
     return <div style={{ textAlign: "center" }}>Loading...</div>;
   }
 
-  // Render valid video thumbnail
+  const image = (
+    <img
+      src={thumbnail}
+      alt="thumbnail"
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        cursor: disableLink ? "default" : "pointer"
+      }}
+    />
+  );
+
+  // 🚫 Disable redirect (used in MediaGrid)
+  if (disableLink) return image;
+
+  // ✅ Allow redirect (used in popup/table)
   return (
     <a href={url} target="_blank" rel="noreferrer">
-      <img
-        src={thumbnail}
-        alt="thumbnail"
-        style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }}
-      />
+      {image}
     </a>
   );
 };

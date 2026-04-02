@@ -1,19 +1,64 @@
 import EmbeddedMedia from "../components/modals/EmbeddedMedia";
 
-export const renderMedia = (u?: string) => {
-  if (!u) return null;
-  if (u.includes("tiktok.com")) {
-    return <EmbeddedMedia url={u} />;
+export const renderMedia = (url?: string, disableLink = false) => {
+  if (!url) return null;
+
+  const lower = url.toLowerCase();
+
+  // 🎵 TikTok
+  if (lower.includes("tiktok.com")) {
+    return <EmbeddedMedia url={url} disableLink={disableLink} />;
   }
 
-  if (u.match(/\.(mp4|webm|ogg)$/i)) {
-    return <video src={u} controls style={{ width: "100%" }} />;
+  // ▶ YouTube
+  if (lower.includes("youtube.com") || lower.includes("youtu.be")) {
+    let id = "";
+
+    if (lower.includes("youtube.com")) {
+      const params = new URL(url).searchParams;
+      id = params.get("v") || "";
+    }
+
+    if (lower.includes("youtu.be")) {
+      id = url.split("youtu.be/")[1]?.split("?")[0] || "";
+    }
+
+    return (
+      <iframe
+        width="100%"
+        height="100%"
+        src={`https://www.youtube.com/embed/${id}`}
+        frameBorder="0"
+        allowFullScreen
+      />
+    );
   }
 
-  if (u.includes("youtube.com") || u.includes("youtu.be")) {
-    const id = u.includes("youtu.be") ? u.split("/").pop() : new URL(u).searchParams.get("v");
-    return <iframe src={`https://www.youtube.com/embed/${id}`} width="100%" />;
+  // 🎬 Video files
+  if (lower.match(/\.(mp4|webm|mov)/)) {
+    return (
+      <video
+        src={url}
+        controls
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+        }}
+      />
+    );
   }
 
-  return <img src={u} style={{ width: "100%" }} />;
+  // 🖼 Image
+  return (
+    <img
+      src={url}
+      alt="media"
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+      }}
+    />
+  );
 };

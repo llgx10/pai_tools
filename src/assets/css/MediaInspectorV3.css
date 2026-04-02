@@ -1,0 +1,11 @@
+/* Blinking bulb - high visibility */
+.blink-bulb {
+  animation: bulbFlash 0.6s infinite;
+  color: #ffc107; /* bright yellow */
+  font-weight: bold;
+}
+
+@keyframes bulbFlash {
+  0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 3px #ffc107); }
+  50% { transform: scale(1.5); opacity: 0.3; filter: drop-shadow(0 0 12px #ffc107); }
+}
