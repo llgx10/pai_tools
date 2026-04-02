@@ -146,7 +146,7 @@ const MediaInspectorV3 = () => {
   const columnOptions = useMemo(() => {
     if (!allData.length) return [];
     const dataKeys = Object.keys(allData[0]).filter((key) => !HIDDEN_KEYS.includes(key));
-    const mergedKeys = [...dataKeys, ...SPECIAL_COLUMNS];
+    const mergedKeys = Array.from(new Set([...dataKeys, ...SPECIAL_COLUMNS]));
     return mergedKeys.map((key) => ({ label: key, value: key }));
   }, [allData]);
 
