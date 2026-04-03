@@ -112,15 +112,6 @@ const FaultySelectorModal: React.FC<Props> = ({ open, onClose, row, onConfirm })
         )}
 
       </div>
-
-      {selectedColumn === "OTHER" && (
-        <Input
-          placeholder="Enter keyword"
-          value={otherValue}
-          onChange={(e) => setOtherValue(e.target.value)}
-          style={{ marginTop: 12 }}
-        />
-      )}
     </Modal>
   );
 };
