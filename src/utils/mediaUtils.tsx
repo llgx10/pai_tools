@@ -1,4 +1,4 @@
-import EmbeddedMedia from "../components/modals/EmbeddedMedia";
+import EmbeddedMedia2 from "../components/modals/EmbeddedMedia2";
 
 export const renderMedia = (url?: string, disableLink = false) => {
   if (!url) return null;
@@ -7,7 +7,7 @@ export const renderMedia = (url?: string, disableLink = false) => {
 
   // 🎵 TikTok
   if (lower.includes("tiktok.com")) {
-    return <EmbeddedMedia url={url} disableLink={disableLink} />;
+    return <EmbeddedMedia2 url={url} disableLink={disableLink} />;
   }
 
   // ▶ YouTube

@@ -50,6 +50,7 @@ const FaultySelectorModal: React.FC<Props> = ({ open, onClose, row, onConfirm })
       open={open}
       title="Select Faulty Column"
       onCancel={onClose}
+      centered
       footer={[
         <Button key="cancel" onClick={onClose}>
           Cancel
@@ -69,6 +70,48 @@ const FaultySelectorModal: React.FC<Props> = ({ open, onClose, row, onConfirm })
         <Radio.Button value="CREATIVE_URL_SUPPLIER">CREATIVE_URL_SUPPLIER</Radio.Button>
         <Radio.Button value="OTHER">OTHER</Radio.Button>
       </Radio.Group>
+
+      {/* VALUE DISPLAY */}
+      <div style={{ marginTop: 16 }}>
+
+        {selectedColumn === "ADVERTISER_NAME" && (
+          <div
+            style={{
+              padding: 10,
+              border: "1px solid #f0f0f0",
+              borderRadius: 6,
+              background: "#fafafa",
+              wordBreak: "break-word",
+            }}
+          >
+            {row.ADVERTISER_NAME || "Empty"}
+          </div>
+        )}
+
+        {selectedColumn === "CREATIVE_URL_SUPPLIER" && (
+          <div
+            style={{
+              padding: 10,
+              border: "1px solid #f0f0f0",
+              borderRadius: 6,
+              background: "#fafafa",
+              wordBreak: "break-word",
+            }}
+          >
+            {row.CREATIVE_URL_SUPPLIER || "Empty"}
+          </div>
+        )}
+
+        {selectedColumn === "OTHER" && (
+          <Input
+            placeholder="Enter keyword"
+            value={otherValue}
+            onChange={(e) => setOtherValue(e.target.value)}
+            style={{ marginTop: 8 }}
+          />
+        )}
+
+      </div>
 
       {selectedColumn === "OTHER" && (
         <Input
