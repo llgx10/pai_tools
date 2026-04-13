@@ -28,23 +28,48 @@ export const MediaTable: React.FC<Props> = ({
     const [selectedRow, setSelectedRow] = useState<RowData | null>(null);
 
     const openFaultyModal = (row: RowData) => {
-        const isChecked = allFaultyRows.some(r => r.row.id === row.id);
+        const isChecked = !!row.isFaulty;
+
         if (isChecked) {
-            // Remove faulty immediately
-            setAllFaultyRows(allFaultyRows.filter(r => r.row.id !== row.id));
+            const newRows = allFaultyRows.filter(
+                (r) => r.row.id !== row.id
+            );
+
+            setAllFaultyRows(newRows);
+
             onUpdateRow?.(row.id, "isFaulty", false);
+            onUpdateRow?.(row.id, "faultyOn", undefined);
         } else {
-            // Open modal to mark faulty
             setSelectedRow(row);
             setModalOpen(true);
         }
     };
 
     const handleFaultyConfirm = (rowId: string | number, faultyOn: FaultyOn) => {
-        onUpdateRow?.(rowId, "isFaulty", true);
+        const baseRow = data.find((r) => r.id === rowId);
+        if (!baseRow) return;
 
-        const filtered = allFaultyRows.filter(r => r.row.id !== rowId);
-        setAllFaultyRows([...filtered, { row: { ...data.find(r => r.id === rowId)!, faultyOn } }]);
+        onUpdateRow?.(rowId, "isFaulty", true);
+        onUpdateRow?.(rowId, "faultyOn", faultyOn);
+
+        const filtered = allFaultyRows.filter(
+            (r) => r.row.id !== rowId
+        );
+
+        const newRows = [
+            ...filtered,
+            {
+                row: {
+                    ...baseRow,
+                    isFaulty: true,
+                    faultyOn,
+                },
+            },
+        ];
+
+        setAllFaultyRows(newRows);
+
+        setModalOpen(false);
     };
 
     const dataKeys = data.length ? Object.keys(data[0]) : [];

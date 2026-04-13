@@ -10,7 +10,8 @@ type Props = {
     data: RowData[];
     onLoadMore?: () => void;
     allFaultyRows: FaultyRow[];
-    setAllFaultyRows: (rows: FaultyRow[]) => void;
+    setAllFaultyRows: React.Dispatch<React.SetStateAction<FaultyRow[]>>;
+    onUpdateRow?: (id: string | number, field: string, value: any) => void;
 };
 
 export const MediaGrid: React.FC<Props> = ({
@@ -18,6 +19,7 @@ export const MediaGrid: React.FC<Props> = ({
     onLoadMore,
     allFaultyRows,
     setAllFaultyRows,
+    onUpdateRow,
 }) => {
     const [rows, setRows] = useState<RowData[]>(data);
     const [selected, setSelected] = useState<RowData | null>(null);
@@ -30,35 +32,86 @@ export const MediaGrid: React.FC<Props> = ({
         setRows(data);
     }, [data]);
 
+    // 🔧 Update row locally
     const handleUpdateRow = (id: string | number, field: string, value: any) => {
-        setRows((prev) => prev.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
+        setRows((prev) =>
+            prev.map((row) =>
+                row.id === id ? { ...row, [field]: value } : row
+            )
+        );
     };
 
-    // ⚡ Checkbox click: either remove or open modal
+    // 🔧 Toggle faulty checkbox
     const handleFaultyClick = (row: RowData) => {
-        const isChecked = allFaultyRows.some((r) => r.row.id === row.id);
-        if (isChecked) {
-            // Remove faulty
-            setAllFaultyRows(allFaultyRows.filter((r) => r.row.id !== row.id));
+        const existing = allFaultyRows.find((r) => r.row.id === row.id);
+
+        if (existing) {
+            // ❌ REMOVE faulty
+
+            // 1. remove from faulty list (safe update)
+            setAllFaultyRows((prev) =>
+                prev.filter((r) => r.row.id !== row.id)
+            );
+
+            // 2. update LOCAL state
             handleUpdateRow(row.id, "isFaulty", false);
+            handleUpdateRow(row.id, "faultyOn", undefined);
+
+            // 3. 🔥 update PARENT state (THIS FIXES EXPORT)
+            onUpdateRow?.(row.id, "isFaulty", false);
+            onUpdateRow?.(row.id, "faultyOn", undefined);
         } else {
-            // Open modal to pick column
+            // ✅ OPEN modal (do NOT set faulty yet)
             setModalRow(row);
             setModalOpen(true);
         }
     };
 
-    // Called when modal confirms a faulty column
+    // 🔧 Confirm faulty selection
     const handleModalConfirm = (rowId: string | number, faultyOn: FaultyOn) => {
         const row = rows.find((r) => r.id === rowId);
         if (!row) return;
 
-        setAllFaultyRows([
-            ...allFaultyRows,
-            { row: { ...row, faultyOn } },
-        ]);
+        const updated: FaultyRow = {
+            row: { ...row, faultyOn },
+        };
+
+        setAllFaultyRows((prev) => {
+            const exists = prev.find((r) => r.row.id === rowId);
+            if (exists) {
+                return prev.map((r) =>
+                    r.row.id === rowId ? updated : r
+                );
+            }
+            return [...prev, updated];
+        });
+
+        // ✅ update LOCAL
         handleUpdateRow(rowId, "isFaulty", true);
+
+        // 🔥 update PARENT (THIS FIXES EXPORT)
+        onUpdateRow?.(rowId, "isFaulty", true);
+        onUpdateRow?.(rowId, "faultyOn", faultyOn);
+
+        setModalOpen(false);
     };
+
+    useEffect(() => {
+        setAllFaultyRows((prev) =>
+            prev.map((f) => {
+                const updatedRow = rows.find((r) => r.id === f.row.id);
+                if (!updatedRow) return f;
+
+                return {
+                    ...f,
+                    row: {
+                        ...updatedRow,
+                        faultyOn: f.row.faultyOn, // ✅ preserve required field
+                    },
+                };
+            })
+        );
+    }, [rows, setAllFaultyRows]);
 
     const HIDDEN_FIELDS = ["__search"];
 
@@ -75,14 +128,19 @@ export const MediaGrid: React.FC<Props> = ({
                 }}
                 onScroll={(e) => {
                     const target = e.currentTarget;
-                    if (target.scrollTop + target.clientHeight >= target.scrollHeight - 200) {
+                    if (
+                        target.scrollTop + target.clientHeight >=
+                        target.scrollHeight - 200
+                    ) {
                         onLoadMore?.();
                     }
                 }}
             >
                 {rows.map((row, index) => {
-                    const mediaUrl = row.CREATIVE_URL_SUPPLIER || row.media || "";
-                    const isChecked = allFaultyRows.some((r) => r.row.id === row.id);
+                    const mediaUrl =
+                        row.CREATIVE_URL_SUPPLIER || row.media || "";
+
+                    const isChecked = !!row.isFaulty;
 
                     return (
                         <Card
@@ -102,23 +160,36 @@ export const MediaGrid: React.FC<Props> = ({
                                 </div>
                             }
                         >
-                            {/* Add index next to Advertiser */}
+                            {/* Index + Advertiser */}
                             <div style={{ fontWeight: 600 }}>
-                                {index + 1}. {row.ADVERTISER_NAME || "Unknown"}
+                                {index + 1}.{" "}
+                                {row.ADVERTISER_NAME || "Unknown"}
                             </div>
 
-                            <div style={{ fontSize: 12 }}>{row.BRAND}</div>
+                            <div style={{ fontSize: 12 }}>
+                                {row.BRAND}
+                            </div>
 
-                            <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 6 }}>
+                            {/* Controls */}
+                            <div
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ marginTop: 6 }}
+                            >
                                 <Input
                                     placeholder="Add remark"
                                     value={row.remark || ""}
-                                    onChange={(e) => handleUpdateRow(row.id, "remark", e.target.value)}
+                                    onChange={(e) => {
+                                        handleUpdateRow(row.id, "remark", e.target.value);
+                                        onUpdateRow?.(row.id, "remark", e.target.value);
+                                    }}
                                 />
+
                                 <Checkbox
                                     style={{ marginTop: 6 }}
                                     checked={isChecked}
-                                    onChange={() => handleFaultyClick(row)}
+                                    onChange={() =>
+                                        handleFaultyClick(row)
+                                    }
                                 >
                                     Faulty
                                 </Checkbox>
@@ -128,7 +199,13 @@ export const MediaGrid: React.FC<Props> = ({
                 })}
             </div>
 
-            <Modal open={!!selected} onCancel={() => setSelected(null)} footer={null} width={900}>
+            {/* Preview Modal */}
+            <Modal
+                open={!!selected}
+                onCancel={() => setSelected(null)}
+                footer={null}
+                width={900}
+            >
                 {selected && (
                     <>
                         <div
@@ -139,12 +216,28 @@ export const MediaGrid: React.FC<Props> = ({
                                 overflow: "hidden",
                             }}
                         >
-                            <LazyMedia url={selected.CREATIVE_URL_SUPPLIER || selected.media || ""} disableLink={false} />
+                            <LazyMedia
+                                url={
+                                    selected.CREATIVE_URL_SUPPLIER ||
+                                    selected.media ||
+                                    ""
+                                }
+                                disableLink={false}
+                            />
                         </div>
+
                         {Object.entries(selected)
-                            .filter(([key]) => !HIDDEN_FIELDS.includes(key))
+                            .filter(
+                                ([key]) => !HIDDEN_FIELDS.includes(key)
+                            )
                             .map(([key, value]) => (
-                                <div key={key} style={{ marginBottom: 8, wordBreak: "break-word" }}>
+                                <div
+                                    key={key}
+                                    style={{
+                                        marginBottom: 8,
+                                        wordBreak: "break-word",
+                                    }}
+                                >
                                     <b>{key}</b>: {String(value)}
                                 </div>
                             ))}
@@ -152,7 +245,7 @@ export const MediaGrid: React.FC<Props> = ({
                 )}
             </Modal>
 
-            {/* ⚡ FaultySelectorModal */}
+            {/* Faulty Selector Modal */}
             <FaultySelectorModal
                 open={modalOpen}
                 row={modalRow}
