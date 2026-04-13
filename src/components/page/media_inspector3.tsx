@@ -248,7 +248,42 @@ const MediaInspectorV3 = () => {
                 ])}
         />
     );
+    // ================= EXPORT =================
+    const prepareExportData = () => {
+        const source =
+            filterFaulty || activeAdvertiser || activeCampaign || searchKeywords.length
+                ? sortedData // ✅ export what user sees
+                : allData;   // fallback
 
+        return source.map((row) => {
+            const cleaned: any = { ...row };
+
+            // ❌ remove internal fields
+            delete cleaned.__search;
+
+            // ✅ flatten faultyOn
+            if (cleaned.faultyOn) {
+                cleaned.faulty_column = cleaned.faultyOn.faultyOn;
+                cleaned.faulty_value = cleaned.faultyOn.value;
+            } else {
+                cleaned.faulty_column = "";
+                cleaned.faulty_value = "";
+            }
+
+            delete cleaned.faultyOn;
+
+            // ✅ normalize boolean
+            cleaned.isFaulty = cleaned.isFaulty ? "TRUE" : "FALSE";
+
+            // ✅ optional: remove media if needed
+            if (exportMode === "without-media") {
+                delete cleaned.media;
+                delete cleaned.CREATIVE_URL_SUPPLIER;
+            }
+
+            return cleaned;
+        });
+    };
     // ================= UI =================
     return (
         <ConfigProvider
@@ -333,13 +368,48 @@ const MediaInspectorV3 = () => {
                         onLoadMore={handleLoadMore}
                         allFaultyRows={allFaultyRows}
                         setAllFaultyRows={setAllFaultyRows}
+                        onUpdateRow={handleUpdateRow}
                     />
+                    
                 )}
 
                 <ExportControls
                     exportMode={exportMode}
                     setExportMode={setExportMode}
-                    onExport={() => exportFile(exportMode)}
+                    onExport={() => {
+                        const prepared = sortedData.map((row) => {
+                            const cleaned: any = { ...row };
+
+                            // ✅ ALWAYS include remark
+                            cleaned.remark = row.remark || "";
+
+                            // ✅ ALWAYS include faulty flag
+                            cleaned.isFaulty = row.isFaulty ? "TRUE" : "FALSE";
+
+                            // ✅ flatten faultyOn
+                            if (row.faultyOn) {
+                                cleaned.faulty_column = row.faultyOn.faultyOn;
+                                cleaned.faulty_value = row.faultyOn.value;
+                            } else {
+                                cleaned.faulty_column = "";
+                                cleaned.faulty_value = "";
+                            }
+
+                            // ❌ remove internal fields
+                            delete cleaned.__search;
+                            delete cleaned.faultyOn;
+
+                            // ❌ optional media removal
+                            if (exportMode === "without-media") {
+                                delete cleaned.media;
+                                delete cleaned.CREATIVE_URL_SUPPLIER;
+                            }
+
+                            return cleaned;
+                        });
+
+                        exportFile(exportMode, prepared);
+                    }}
                     isExporting={isExporting}
                     progress={progress}
                     disabled={!allData.length}

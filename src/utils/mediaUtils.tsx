@@ -7,7 +7,8 @@ export const renderMedia = (url?: string, disableLink = false) => {
 
   // 🎵 TikTok
   if (lower.includes("tiktok.com")) {
-    return <EmbeddedMedia url={url} disableLink={disableLink} />;
+    const fixedUrl = url.replace("photo", "video");
+    return <EmbeddedMedia url={fixedUrl} disableLink={disableLink} />;
   }
 
   // ▶ YouTube
