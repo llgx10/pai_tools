@@ -248,42 +248,7 @@ const MediaInspectorV3 = () => {
                 ])}
         />
     );
-    // ================= EXPORT =================
-    const prepareExportData = () => {
-        const source =
-            filterFaulty || activeAdvertiser || activeCampaign || searchKeywords.length
-                ? sortedData // ✅ export what user sees
-                : allData;   // fallback
-
-        return source.map((row) => {
-            const cleaned: any = { ...row };
-
-            // ❌ remove internal fields
-            delete cleaned.__search;
-
-            // ✅ flatten faultyOn
-            if (cleaned.faultyOn) {
-                cleaned.faulty_column = cleaned.faultyOn.faultyOn;
-                cleaned.faulty_value = cleaned.faultyOn.value;
-            } else {
-                cleaned.faulty_column = "";
-                cleaned.faulty_value = "";
-            }
-
-            delete cleaned.faultyOn;
-
-            // ✅ normalize boolean
-            cleaned.isFaulty = cleaned.isFaulty ? "TRUE" : "FALSE";
-
-            // ✅ optional: remove media if needed
-            if (exportMode === "without-media") {
-                delete cleaned.media;
-                delete cleaned.CREATIVE_URL_SUPPLIER;
-            }
-
-            return cleaned;
-        });
-    };
+    
     // ================= UI =================
     return (
         <ConfigProvider
