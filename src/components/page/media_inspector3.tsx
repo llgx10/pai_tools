@@ -362,13 +362,8 @@ const MediaInspectorV3 = () => {
 
                             // ❌ remove internal fields
                             delete cleaned.__search;
-                            delete cleaned.faultyOn;
 
-                            // ❌ optional media removal
-                            if (exportMode === "without-media") {
-                                delete cleaned.media;
-                                delete cleaned.CREATIVE_URL_SUPPLIER;
-                            }
+                            
 
                             return cleaned;
                         });

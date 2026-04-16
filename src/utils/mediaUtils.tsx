@@ -17,7 +17,7 @@ export const renderMedia = (url?: string, disableLink = false) => {
 
     if (lower.includes("youtube.com")) {
       const params = new URL(url).searchParams;
-      id = params.get("v") || "";
+      id = params.get("v") || ""
     }
 
     if (lower.includes("youtu.be")) {
