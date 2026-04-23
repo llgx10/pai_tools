@@ -1,6 +1,6 @@
 // src/components/modals/MediaInspectorV3.tsx
 import { useState, useMemo } from "react";
-import { Button, Layout, ConfigProvider, theme, Row, Col, Space, Dropdown, Menu } from "antd";
+import { Button, Layout, ConfigProvider, theme, Row, Col, Space, Dropdown, Menu, Segmented } from "antd";
 import { LayoutGrid, Table as TableIcon, ArrowUpDown } from "lucide-react";
 import { BulbOutlined } from "@ant-design/icons";
 
@@ -61,7 +61,7 @@ const MediaInspectorV3 = () => {
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [allFaultyRows, setAllFaultyRows] = useState<FaultyRow[]>([]);
-
+    const [faultyMode, setFaultyMode] = useState<"legacy" | "advanced">("legacy");
     // ================= SORT STATE =================
     const [sortConfig, setSortConfig] = useState<{
         field?: string;
@@ -248,7 +248,7 @@ const MediaInspectorV3 = () => {
                 ])}
         />
     );
-    
+
     // ================= UI =================
     return (
         <ConfigProvider
@@ -281,6 +281,17 @@ const MediaInspectorV3 = () => {
 
                     <Col>
                         <Space>
+                            {/* FAULTY MODE TOGGLE */}
+                            Faulty Selection Mode:
+                            <Segmented
+                                size="middle"
+                                value={faultyMode}
+                                onChange={(val) => setFaultyMode(val as "legacy" | "advanced")}
+                                options={[
+                                    { label: "Legacy", value: "legacy" },
+                                    { label: "Advanced", value: "advanced" },
+                                ]}
+                            />
                             {/* GRID / TABLE */}
                             <Button
                                 icon={viewMode === "grid" ? <LayoutGrid size={18} /> : <TableIcon size={18} />}
@@ -326,6 +337,10 @@ const MediaInspectorV3 = () => {
                         onUpdateRow={handleUpdateRow}
                         allFaultyRows={allFaultyRows}
                         setAllFaultyRows={setAllFaultyRows}
+                        sortConfig={sortConfig}
+                        setSortConfig={setSortConfig}
+                        setChunk={setChunk}
+                        faultyMode={faultyMode}
                     />
                 ) : (
                     <MediaGrid
@@ -334,8 +349,9 @@ const MediaInspectorV3 = () => {
                         allFaultyRows={allFaultyRows}
                         setAllFaultyRows={setAllFaultyRows}
                         onUpdateRow={handleUpdateRow}
+                        faultyMode={faultyMode}
                     />
-                    
+
                 )}
 
                 <ExportControls
@@ -363,7 +379,7 @@ const MediaInspectorV3 = () => {
                             // ❌ remove internal fields
                             delete cleaned.__search;
 
-                            
+
 
                             return cleaned;
                         });

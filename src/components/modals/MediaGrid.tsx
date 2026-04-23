@@ -12,6 +12,7 @@ type Props = {
     allFaultyRows: FaultyRow[];
     setAllFaultyRows: React.Dispatch<React.SetStateAction<FaultyRow[]>>;
     onUpdateRow?: (id: string | number, field: string, value: any) => void;
+    faultyMode: "legacy" | "advanced"; // ✅ ADD
 };
 
 export const MediaGrid: React.FC<Props> = ({
@@ -20,6 +21,7 @@ export const MediaGrid: React.FC<Props> = ({
     allFaultyRows,
     setAllFaultyRows,
     onUpdateRow,
+    faultyMode,
 }) => {
     const [rows, setRows] = useState<RowData[]>(data);
     const [selected, setSelected] = useState<RowData | null>(null);
@@ -45,23 +47,54 @@ export const MediaGrid: React.FC<Props> = ({
     const handleFaultyClick = (row: RowData) => {
         const existing = allFaultyRows.find((r) => r.row.id === row.id);
 
-        if (existing) {
-            // ❌ REMOVE faulty
+        // ================= LEGACY MODE =================
+        if (faultyMode === "legacy") {
+            if (existing) {
+                // ❌ REMOVE
+                setAllFaultyRows((prev) =>
+                    prev.filter((r) => r.row.id !== row.id)
+                );
 
-            // 1. remove from faulty list (safe update)
+                handleUpdateRow(row.id, "isFaulty", false);
+                handleUpdateRow(row.id, "faultyOn", undefined);
+
+                onUpdateRow?.(row.id, "isFaulty", false);
+                onUpdateRow?.(row.id, "faultyOn", undefined);
+            } else {
+                const faultyOn: FaultyOn = {
+                    faultyOn: "OTHER",
+                    value: "legacy_toggle",
+                };
+
+                const updated: FaultyRow = {
+                    row: { ...row, isFaulty: true, faultyOn },
+                };
+
+                setAllFaultyRows((prev) => [...prev, updated]);
+
+                handleUpdateRow(row.id, "isFaulty", true);
+
+                onUpdateRow?.(row.id, "isFaulty", true);
+                onUpdateRow?.(row.id, "faultyOn", faultyOn);
+            }
+
+            return; // 🚨 stop (no modal)
+        }
+
+        // ================= ADVANCED MODE (existing behavior) =================
+        if (existing) {
+            // ❌ REMOVE
             setAllFaultyRows((prev) =>
                 prev.filter((r) => r.row.id !== row.id)
             );
 
-            // 2. update LOCAL state
             handleUpdateRow(row.id, "isFaulty", false);
             handleUpdateRow(row.id, "faultyOn", undefined);
 
-            // 3. 🔥 update PARENT state (THIS FIXES EXPORT)
             onUpdateRow?.(row.id, "isFaulty", false);
             onUpdateRow?.(row.id, "faultyOn", undefined);
         } else {
-            // ✅ OPEN modal (do NOT set faulty yet)
+            // ✅ OPEN modal
             setModalRow(row);
             setModalOpen(true);
         }
