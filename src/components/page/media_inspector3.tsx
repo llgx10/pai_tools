@@ -467,8 +467,7 @@ const MediaInspectorV3 = () => {
                 )
                     : (
                         <MediaDrill
-                            data={tableData}
-                            onLoadMore={handleLoadMore}
+                            data={filteredData}
                             allFaultyRows={allFaultyRows}
                             setAllFaultyRows={setAllFaultyRows}
                             onUpdateRow={handleUpdateRow}

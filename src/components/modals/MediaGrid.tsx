@@ -262,6 +262,7 @@ export const MediaGrid: React.FC<Props> = ({
                                     ""
                                 }
                                 disableLink={false}
+                                lazy = {true}
                             />
                         </div>
 

@@ -1,6 +1,6 @@
 // src/components/modals/MediaDrillView.tsx
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
     Card,
     Modal,
@@ -18,7 +18,7 @@ import type { FaultyRow } from "./queryDrawer";
 
 type Props = {
     data: RowData[];
-    onLoadMore?: () => void;
+    // onLoadMore?: () => void;
 
     allFaultyRows: FaultyRow[];
     setAllFaultyRows: React.Dispatch<
@@ -33,11 +33,11 @@ type Props = {
 
     faultyMode: "legacy" | "advanced";
     mediaField: string;
+
 };
 
 const MediaDrill: React.FC<Props> = ({
     data,
-    onLoadMore,
     allFaultyRows,
     setAllFaultyRows,
     onUpdateRow,
@@ -56,7 +56,17 @@ const MediaDrill: React.FC<Props> = ({
     const [groupBy, setGroupBy] = useState<
         "ADVERTISER_NAME" | "BRAND"
     >("ADVERTISER_NAME");
+    // const scrollRef = useRef<HTMLDivElement>(null);
+    // useEffect(() => {
+    //     const el = scrollRef.current;
 
+    //     if (
+    //         el &&
+    //         el.scrollHeight <= el.clientHeight
+    //     ) {
+    //         onLoadMore?.();
+    //     }
+    // }, [rows.length, onLoadMore]);
     useEffect(() => {
         setRows(data);
     }, [data]);
@@ -275,7 +285,8 @@ const MediaDrill: React.FC<Props> = ({
     }, [rows, groupBy]);
 
     const HIDDEN_FIELDS = ["__search"];
-
+    console.log("Drill rows:", rows.length);
+    console.log("Data prop:", data.length);
     return (
         <>
             <div
@@ -314,24 +325,10 @@ const MediaDrill: React.FC<Props> = ({
                     maxHeight: "70vh",
                     overflowY: "auto",
                 }}
-                onScroll={(e) => {
-                    const target =
-                        e.currentTarget;
-
-                    if (
-                        target.scrollTop +
-                        target.clientHeight >=
-                        target.scrollHeight -
-                        200
-                    ) {
-                        onLoadMore?.();
-                    }
-                }}
             >
                 <Collapse
-                    defaultActiveKey={groupedData.map(
-                        ([group]) => group
-                    )}
+                    defaultActiveKey={[]}
+                    destroyOnHidden
                     items={groupedData.map(
                         ([group, items]) => ({
                             key: group,
@@ -387,6 +384,7 @@ const MediaDrill: React.FC<Props> = ({
                                                                     mediaUrl
                                                                 }
                                                                 disableLink
+                                                                lazy={false}
                                                             />
                                                         </div>
                                                     }
@@ -546,7 +544,6 @@ const MediaDrill: React.FC<Props> = ({
                     </>
                 )}
             </Modal>
-
             <FaultySelectorModal
                 open={modalOpen}
                 row={modalRow}

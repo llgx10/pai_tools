@@ -196,7 +196,7 @@ export const MediaTable: React.FC<Props> = ({
                 record.media ||
                 "";
 
-            return <LazyMedia url={String(mediaUrl)} />;
+            return <LazyMedia url={String(mediaUrl)} lazy = {true} />;
         },
 
         onCell: () => ({ style: cellStyle }),
