@@ -1,6 +1,6 @@
 // src/components/modals/MediaInspectorV3.tsx
 import { useState, useMemo } from "react";
-import { Button, Layout, ConfigProvider, theme, Row, Col, Space, Dropdown, Menu, Segmented } from "antd";
+import { Button, Layout, ConfigProvider, theme, Row, Col, Space, Dropdown, Menu, Segmented} from "antd";
 import { LayoutGrid, Table as TableIcon, ArrowUpDown, ChevronDown } from "lucide-react";
 import { BulbOutlined } from "@ant-design/icons";
 
@@ -51,7 +51,8 @@ const MediaInspectorV3 = () => {
     const [activeCampaign, setActiveCampaign] = useState<string | null>(null);
 
     const [viewMode, setViewMode] = useState<"table" | "grid" | "drill">("table");
-
+    const [mediaField, setMediaField] =
+        useState("CREATIVE_URL_SUPPLIER");
     const [exportMode, setExportMode] = useState<"with-media" | "without-media">(
         "without-media"
     );
@@ -98,6 +99,17 @@ const MediaInspectorV3 = () => {
             return { ...prev, campaigns: next };
         });
     };
+
+    const mediaFieldOptions = useMemo(() => {
+        if (!allData.length) return [];
+
+        return Object.keys(allData[0]).filter((key) =>
+            key.toUpperCase().includes("URL") ||
+            key.toUpperCase().includes("MEDIA") ||
+            key.toUpperCase().includes("IMAGE") ||
+            key.toUpperCase().includes("VIDEO")
+        );
+    }, [allData]);
 
     // ================= FAULTY MODAL =================
     const [faultyModalOpen, setFaultyModalOpen] = useState(false);
@@ -329,10 +341,12 @@ const MediaInspectorV3 = () => {
                             columnOptions={columnOptions}
                             visibleColumns={visibleColumns}
                             setVisibleColumns={setVisibleColumns}
+                            mediaField={mediaField}
+                            setMediaField={setMediaField}
+                            mediaFieldOptions={mediaFieldOptions}
                             themeMode={themeMode}
                         />
                     </Col>
-
                     <Col>
                         <Space>
                             {/* FAULTY MODE TOGGLE */}
@@ -437,6 +451,7 @@ const MediaInspectorV3 = () => {
                         setSortConfig={setSortConfig}
                         setChunk={setChunk}
                         faultyMode={faultyMode}
+                        mediaField={mediaField}
                     />
                 ) : viewMode === "grid" ? (
                     <MediaGrid
@@ -446,6 +461,7 @@ const MediaInspectorV3 = () => {
                         setAllFaultyRows={setAllFaultyRows}
                         onUpdateRow={handleUpdateRow}
                         faultyMode={faultyMode}
+                        mediaField={mediaField}
                     />
 
                 )
@@ -457,6 +473,7 @@ const MediaInspectorV3 = () => {
                             setAllFaultyRows={setAllFaultyRows}
                             onUpdateRow={handleUpdateRow}
                             faultyMode={faultyMode}
+                            mediaField={mediaField}
                         />)
                 }
 

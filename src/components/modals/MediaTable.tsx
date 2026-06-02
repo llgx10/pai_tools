@@ -25,6 +25,7 @@ type Props = {
         order?: "ascend" | "descend";
     }>>;
     setChunk: React.Dispatch<React.SetStateAction<number>>;
+    mediaField: string;
 };
 
 export const MediaTable: React.FC<Props> = ({
@@ -34,11 +35,11 @@ export const MediaTable: React.FC<Props> = ({
     onUpdateRow,
     allFaultyRows,
     setAllFaultyRows,
-
     sortConfig,
     setSortConfig,
     setChunk,
-    faultyMode
+    faultyMode,
+    mediaField
 }) => {
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedRow, setSelectedRow] = useState<RowData | null>(null);
@@ -183,12 +184,21 @@ export const MediaTable: React.FC<Props> = ({
         }));
 
     const mediaColumn: ColumnsType<RowData>[number] = {
-        title: "media",
-        dataIndex: "media",
+        title: `media (${mediaField})`,
         key: "media",
         width: 320,
         fixed: "left",
-        render: v => <LazyMedia url={v} />,
+
+        render: (_, record) => {
+            const mediaUrl =
+                record[mediaField as keyof RowData] ||
+                record.CREATIVE_URL_SUPPLIER ||
+                record.media ||
+                "";
+
+            return <LazyMedia url={String(mediaUrl)} />;
+        },
+
         onCell: () => ({ style: cellStyle }),
     };
 

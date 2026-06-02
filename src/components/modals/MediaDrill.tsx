@@ -32,6 +32,7 @@ type Props = {
     ) => void;
 
     faultyMode: "legacy" | "advanced";
+    mediaField: string;
 };
 
 const MediaDrill: React.FC<Props> = ({
@@ -41,6 +42,7 @@ const MediaDrill: React.FC<Props> = ({
     setAllFaultyRows,
     onUpdateRow,
     faultyMode,
+    mediaField
 }) => {
     const [rows, setRows] = useState<RowData[]>(data);
 
@@ -318,9 +320,9 @@ const MediaDrill: React.FC<Props> = ({
 
                     if (
                         target.scrollTop +
-                            target.clientHeight >=
+                        target.clientHeight >=
                         target.scrollHeight -
-                            200
+                        200
                     ) {
                         onLoadMore?.();
                     }
@@ -350,6 +352,7 @@ const MediaDrill: React.FC<Props> = ({
                                             index
                                         ) => {
                                             const mediaUrl =
+                                                row[mediaField as keyof RowData] ||
                                                 row.CREATIVE_URL_SUPPLIER ||
                                                 row.media ||
                                                 "";
@@ -495,10 +498,12 @@ const MediaDrill: React.FC<Props> = ({
                         >
                             <LazyMedia
                                 url={
+                                    selected[mediaField as keyof RowData] ||
                                     selected.CREATIVE_URL_SUPPLIER ||
                                     selected.media ||
                                     ""
                                 }
+                                disableLink={false}
                             />
                         </div>
 

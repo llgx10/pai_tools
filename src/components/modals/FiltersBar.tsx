@@ -1,5 +1,5 @@
 import React from "react";
-import { Input, Tag, Checkbox, Button, Dropdown, Divider } from "antd";
+import { Input, Tag, Checkbox, Button, Dropdown, Divider, Select } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 
 const { Search } = Input;
@@ -21,7 +21,12 @@ type Props = {
   visibleColumns: string[];
   setVisibleColumns: (v: string[]) => void;
 
+  mediaField: string;
+  setMediaField: (v: string) => void;
+  mediaFieldOptions: string[];
   themeMode: "light" | "dark";
+
+
 };
 
 const FiltersBar: React.FC<Props> = ({
@@ -36,7 +41,9 @@ const FiltersBar: React.FC<Props> = ({
   columnOptions,
   visibleColumns,
   setVisibleColumns,
-
+  mediaField,
+  setMediaField,
+  mediaFieldOptions,
   themeMode,
 }) => {
   const handleSearch = (val: string) => {
@@ -128,23 +135,51 @@ const FiltersBar: React.FC<Props> = ({
       </div>
 
       {/* 👁 Column visibility */}
-      <Dropdown
-        menu={{ items: [] }}
-        popupRender={() => (
-          <div
-            style={{
-              background: themeMode === "dark" ? "#000" : "#fff",
-              color: themeMode === "dark" ? "#fff" : "#000",
-              borderRadius: 6,
-            }}
-          >
-            {columnVisibilityMenu}
-          </div>
-        )}
-        trigger={["click"]}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}
       >
-        <Button icon={<EyeOutlined />}>Columns</Button>
-      </Dropdown>
+        <Dropdown
+          menu={{ items: [] }}
+          popupRender={() => (
+            <div
+              style={{
+                background: themeMode === "dark" ? "#000" : "#fff",
+                color: themeMode === "dark" ? "#fff" : "#000",
+                borderRadius: 6,
+              }}
+            >
+              {columnVisibilityMenu}
+            </div>
+          )}
+          trigger={["click"]}
+        >
+          <Button icon={<EyeOutlined />}>Columns</Button>
+        </Dropdown>
+
+        <span
+          style={{
+            fontSize: 13,
+            whiteSpace: "nowrap",
+          }}
+        >
+          Render Media From
+        </span>
+
+        <Select
+          size="middle"
+          style={{ width: 220 }}
+          value={mediaField}
+          onChange={setMediaField}
+          options={mediaFieldOptions.map((field) => ({
+            label: field,
+            value: field,
+          }))}
+        />
+      </div>
     </div>
   );
 };

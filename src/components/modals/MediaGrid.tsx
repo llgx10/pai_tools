@@ -12,7 +12,8 @@ type Props = {
     allFaultyRows: FaultyRow[];
     setAllFaultyRows: React.Dispatch<React.SetStateAction<FaultyRow[]>>;
     onUpdateRow?: (id: string | number, field: string, value: any) => void;
-    faultyMode: "legacy" | "advanced"; // ✅ ADD
+    faultyMode: "legacy" | "advanced";
+    mediaField: string;
 };
 
 export const MediaGrid: React.FC<Props> = ({
@@ -22,6 +23,7 @@ export const MediaGrid: React.FC<Props> = ({
     setAllFaultyRows,
     onUpdateRow,
     faultyMode,
+    mediaField
 }) => {
     const [rows, setRows] = useState<RowData[]>(data);
     const [selected, setSelected] = useState<RowData | null>(null);
@@ -171,7 +173,10 @@ export const MediaGrid: React.FC<Props> = ({
             >
                 {rows.map((row, index) => {
                     const mediaUrl =
-                        row.CREATIVE_URL_SUPPLIER || row.media || "";
+                        row[mediaField as keyof RowData] ||
+                        row.CREATIVE_URL_SUPPLIER ||
+                        row.media ||
+                        "";
 
                     const isChecked = !!row.isFaulty;
 
@@ -251,6 +256,7 @@ export const MediaGrid: React.FC<Props> = ({
                         >
                             <LazyMedia
                                 url={
+                                    selected[mediaField as keyof RowData] ||
                                     selected.CREATIVE_URL_SUPPLIER ||
                                     selected.media ||
                                     ""
