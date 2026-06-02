@@ -244,9 +244,9 @@ export const MediaGrid: React.FC<Props> = ({
                         <div
                             style={{
                                 marginBottom: 20,
-                                aspectRatio: "9/16",
-                                maxHeight: 500,
-                                overflow: "hidden",
+                                maxHeight: "80vh",
+                                overflow: "auto",
+                                textAlign: "center",
                             }}
                         >
                             <LazyMedia

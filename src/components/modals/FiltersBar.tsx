@@ -14,6 +14,9 @@ type Props = {
   filterFaulty: boolean;
   setFilterFaulty: (v: boolean) => void;
 
+  filterNonFaulty: boolean;
+  setFilterNonFaulty: (v: boolean) => void;
+
   columnOptions: { label: string; value: string }[];
   visibleColumns: string[];
   setVisibleColumns: (v: string[]) => void;
@@ -28,9 +31,12 @@ const FiltersBar: React.FC<Props> = ({
   setSearchKeywords,
   filterFaulty,
   setFilterFaulty,
+  filterNonFaulty,
+  setFilterNonFaulty,
   columnOptions,
   visibleColumns,
   setVisibleColumns,
+
   themeMode,
 }) => {
   const handleSearch = (val: string) => {
@@ -99,12 +105,27 @@ const FiltersBar: React.FC<Props> = ({
       )}
 
       {/* ⚠️ Faulty toggle */}
-      <Checkbox
-        checked={filterFaulty}
-        onChange={(e) => setFilterFaulty(e.target.checked)}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+        }}
       >
-        Show Only Faulty
-      </Checkbox>
+        <Checkbox
+          checked={filterFaulty}
+          onChange={(e) => setFilterFaulty(e.target.checked)}
+        >
+          Faulty
+        </Checkbox>
+
+        <Checkbox
+          checked={filterNonFaulty}
+          onChange={(e) => setFilterNonFaulty(e.target.checked)}
+        >
+          Non-Faulty
+        </Checkbox>
+      </div>
 
       {/* 👁 Column visibility */}
       <Dropdown

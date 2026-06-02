@@ -1,7 +1,7 @@
 // src/components/modals/MediaInspectorV3.tsx
 import { useState, useMemo } from "react";
 import { Button, Layout, ConfigProvider, theme, Row, Col, Space, Dropdown, Menu, Segmented } from "antd";
-import { LayoutGrid, Table as TableIcon, ArrowUpDown } from "lucide-react";
+import { LayoutGrid, Table as TableIcon, ArrowUpDown, ChevronDown } from "lucide-react";
 import { BulbOutlined } from "@ant-design/icons";
 
 import { UploadSection } from "../modals/UploadSection";
@@ -12,6 +12,7 @@ import DistributionTables from "../modals/DistributionTables";
 import ExportControls from "../modals/ExportControls";
 import Header from "../modals/Headers";
 import MediaGrid from "../modals/MediaGrid";
+import MediaDrill from "../modals/MediaDrill";
 import QueryDrawer, { FaultyRow } from "../modals/queryDrawer";
 
 import { useFileParser } from "../../hooks/useFileParser";
@@ -36,6 +37,7 @@ const MediaInspectorV3 = () => {
     const [searchInput, setSearchInput] = useState("");
     const [searchKeywords, setSearchKeywords] = useState<string[]>([]);
     const [filterFaulty, setFilterFaulty] = useState(false);
+    const [filterNonFaulty, setFilterNonFaulty] = useState(false);
 
     const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
     const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
@@ -48,7 +50,7 @@ const MediaInspectorV3 = () => {
     const [activeAdvertiser, setActiveAdvertiser] = useState<string | null>(null);
     const [activeCampaign, setActiveCampaign] = useState<string | null>(null);
 
-    const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+    const [viewMode, setViewMode] = useState<"table" | "grid" | "drill">("table");
 
     const [exportMode, setExportMode] = useState<"with-media" | "without-media">(
         "without-media"
@@ -123,15 +125,65 @@ const MediaInspectorV3 = () => {
     const filteredData = useMemo(() => {
         return allData
             .filter((row) => {
-                if (filterFaulty && !row.isFaulty) return false;
-                if (activeAdvertiser && row.ADVERTISER_NAME !== activeAdvertiser) return false;
-                if (activeCampaign && row.CREATIVE_CAMPAIGN_NAME !== activeCampaign) return false;
-                if (row.ADVERTISER_NAME && hiddenFilters.advertisers.has(row.ADVERTISER_NAME)) return false;
-                if (row.CREATIVE_CAMPAIGN_NAME && hiddenFilters.campaigns.has(row.CREATIVE_CAMPAIGN_NAME)) return false;
+                // Faulty only
+                if (filterFaulty && !filterNonFaulty) {
+                    return row.isFaulty;
+                }
+
+                // Non-faulty only
+                if (!filterFaulty && filterNonFaulty) {
+                    return !row.isFaulty;
+                }
+
+                // Both checked or both unchecked = show all
+                if (
+                    (filterFaulty && filterNonFaulty) ||
+                    (!filterFaulty && !filterNonFaulty)
+                ) {
+                    return true;
+                }
+
                 return true;
             })
-            .filter((row) => searchKeywords.every((kw) => row.__search?.includes(kw)));
-    }, [allData, filterFaulty, activeAdvertiser, activeCampaign, hiddenFilters, searchKeywords]);
+            .filter((row) => {
+                if (
+                    activeAdvertiser &&
+                    row.ADVERTISER_NAME !== activeAdvertiser
+                )
+                    return false;
+
+                if (
+                    activeCampaign &&
+                    row.CREATIVE_CAMPAIGN_NAME !== activeCampaign
+                )
+                    return false;
+
+                if (
+                    row.ADVERTISER_NAME &&
+                    hiddenFilters.advertisers.has(row.ADVERTISER_NAME)
+                )
+                    return false;
+
+                if (
+                    row.CREATIVE_CAMPAIGN_NAME &&
+                    hiddenFilters.campaigns.has(row.CREATIVE_CAMPAIGN_NAME)
+                )
+                    return false;
+
+                return true;
+            })
+            .filter((row) =>
+                searchKeywords.every((kw) => row.__search?.includes(kw))
+            );
+    }, [
+        allData,
+        filterFaulty,
+        filterNonFaulty,
+        activeAdvertiser,
+        activeCampaign,
+        hiddenFilters,
+        searchKeywords,
+    ]);
 
     // ================= SORTING =================
     const sortedData = useMemo(() => {
@@ -272,6 +324,8 @@ const MediaInspectorV3 = () => {
                             setSearchKeywords={setSearchKeywords}
                             filterFaulty={filterFaulty}
                             setFilterFaulty={setFilterFaulty}
+                            filterNonFaulty={filterNonFaulty}
+                            setFilterNonFaulty={setFilterNonFaulty}
                             columnOptions={columnOptions}
                             visibleColumns={visibleColumns}
                             setVisibleColumns={setVisibleColumns}
@@ -292,13 +346,55 @@ const MediaInspectorV3 = () => {
                                     { label: "Advanced", value: "advanced" },
                                 ]}
                             />
-                            {/* GRID / TABLE */}
-                            <Button
-                                icon={viewMode === "grid" ? <LayoutGrid size={18} /> : <TableIcon size={18} />}
-                                onClick={() => setViewMode(viewMode === "grid" ? "table" : "grid")}
+                            {/* GRID / TABLE / DRILL */}
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                }}
                             >
-                                {viewMode === "grid" ? "Grid" : "Table"}
-                            </Button>
+                                <Button
+                                    type={viewMode === "table" ? "primary" : "default"}
+                                    onClick={() => setViewMode("table")}
+                                    style={{
+                                        width: 100,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <TableIcon size={16} style={{ marginRight: 6 }} />
+                                    Table
+                                </Button>
+
+                                <Button
+                                    type={viewMode === "grid" ? "primary" : "default"}
+                                    onClick={() => setViewMode("grid")}
+                                    style={{
+                                        width: 100,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <LayoutGrid size={16} style={{ marginRight: 6 }} />
+                                    Grid
+                                </Button>
+
+                                <Button
+                                    type={viewMode === "drill" ? "primary" : "default"}
+                                    onClick={() => setViewMode("drill")}
+                                    style={{
+                                        width: 100,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <ChevronDown size={16} style={{ marginRight: 6 }} />
+                                    Drill
+                                </Button>
+                            </div>
 
                             {/* GRID SORT */}
                             {viewMode === "grid" && (
@@ -342,7 +438,7 @@ const MediaInspectorV3 = () => {
                         setChunk={setChunk}
                         faultyMode={faultyMode}
                     />
-                ) : (
+                ) : viewMode === "grid" ? (
                     <MediaGrid
                         data={tableData}
                         onLoadMore={handleLoadMore}
@@ -352,7 +448,17 @@ const MediaInspectorV3 = () => {
                         faultyMode={faultyMode}
                     />
 
-                )}
+                )
+                    : (
+                        <MediaDrill
+                            data={tableData}
+                            onLoadMore={handleLoadMore}
+                            allFaultyRows={allFaultyRows}
+                            setAllFaultyRows={setAllFaultyRows}
+                            onUpdateRow={handleUpdateRow}
+                            faultyMode={faultyMode}
+                        />)
+                }
 
                 <ExportControls
                     exportMode={exportMode}
@@ -361,13 +467,11 @@ const MediaInspectorV3 = () => {
                         const prepared = sortedData.map((row) => {
                             const cleaned: any = { ...row };
 
-                            // ✅ ALWAYS include remark
                             cleaned.remark = row.remark || "";
 
-                            // ✅ ALWAYS include faulty flag
                             cleaned.isFaulty = row.isFaulty ? "TRUE" : "FALSE";
 
-                            // ✅ flatten faultyOn
+
                             if (row.faultyOn) {
                                 cleaned.faulty_column = row.faultyOn.faultyOn;
                                 cleaned.faulty_value = row.faultyOn.value;
@@ -376,7 +480,7 @@ const MediaInspectorV3 = () => {
                                 cleaned.faulty_value = "";
                             }
 
-                            // ❌ remove internal fields
+
                             delete cleaned.__search;
 
 
