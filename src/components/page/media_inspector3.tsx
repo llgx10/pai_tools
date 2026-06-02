@@ -472,7 +472,7 @@ const MediaInspectorV3 = () => {
                             setAllFaultyRows={setAllFaultyRows}
                             onUpdateRow={handleUpdateRow}
                             faultyMode={faultyMode}
-                            mediaField={mediaField}
+                            mediaField={mediaField} 
                         />)
                 }
 
