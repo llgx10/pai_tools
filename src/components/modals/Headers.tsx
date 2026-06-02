@@ -11,6 +11,7 @@ const AppHeader: React.FC = () => {
   const items = [
     { key: "/", label: "Home", onClick: () => navigate("/") },
     { key: "/media-inspector2", label: "Media Inspector V2", onClick: () => navigate("/media-inspector2") },
+    { key: "/media-inspector3", label: "Media Inspector V3", onClick: () => navigate("/media-inspector3") },
     { key: "/text-converter", label: "Text Converter", onClick: () => navigate("/text-converter") },
     { key: "/query-builder", label: "Query Builder", onClick: () => navigate("/query-builder") },
   ];
@@ -24,8 +25,8 @@ const AppHeader: React.FC = () => {
         height: 50,
         lineHeight: "48px",
         padding: "0 16px",
-        background: token.colorBgContainer,              // ✅ theme-aware
-        borderBottom: `1px solid ${token.colorBorder}`,  // ✅ theme-aware
+        background: token.colorBgContainer,              
+        borderBottom: `1px solid ${token.colorBorder}`,
       }}
     >
       <Menu
@@ -33,7 +34,7 @@ const AppHeader: React.FC = () => {
         selectedKeys={[location.pathname]}
         items={items}
         style={{
-          background: "transparent",                     // 👈 inherit header bg
+          background: "transparent",                   
           width: "100%",
           display: "flex",
           justifyContent: "flex-end",
