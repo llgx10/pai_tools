@@ -1,6 +1,6 @@
 // src/components/modals/MediaDrillView.tsx
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     Card,
     Modal,
