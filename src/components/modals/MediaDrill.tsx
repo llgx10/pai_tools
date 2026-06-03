@@ -2,17 +2,14 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import {
-    Card,
     Modal,
-    Input,
-    Checkbox,
     Collapse,
     Select,
 } from "antd";
 
 import { LazyMedia } from "./LazyMedia";
 import FaultySelectorModal, { FaultyOn } from "./FaultySelectorModal";
-
+import { GroupGrid } from "./GroupGrid"
 import type { RowData } from "../../types/RowData";
 import type { FaultyRow } from "./queryDrawer";
 
@@ -328,148 +325,20 @@ const MediaDrill: React.FC<Props> = ({
             >
                 <Collapse
                     defaultActiveKey={[]}
-                    destroyOnHidden
+                    destroyOnHidden={false}
                     items={groupedData.map(
                         ([group, items]) => ({
                             key: group,
                             label: `${group} (${items.length})`,
                             children: (
-                                <div
-                                    style={{
-                                        display:
-                                            "grid",
-                                        gridTemplateColumns:
-                                            "repeat(auto-fill,minmax(260px,1fr))",
-                                        gap: 16,
-                                    }}
-                                >
-                                    {items.map(
-                                        (
-                                            row,
-                                            index
-                                        ) => {
-                                            const mediaUrl =
-                                                row[mediaField as keyof RowData] ||
-                                                row.CREATIVE_URL_SUPPLIER ||
-                                                row.media ||
-                                                "";
-
-                                            return (
-                                                <Card
-                                                    key={
-                                                        row.id
-                                                    }
-                                                    hoverable
-                                                    bodyStyle={{
-                                                        padding: 10,
-                                                    }}
-                                                    onClick={() =>
-                                                        setSelected(
-                                                            row
-                                                        )
-                                                    }
-                                                    cover={
-                                                        <div
-                                                            style={{
-                                                                aspectRatio:
-                                                                    "9/16",
-                                                                overflow:
-                                                                    "hidden",
-                                                                background:
-                                                                    "#f5f5f5",
-                                                            }}
-                                                        >
-                                                            <LazyMedia
-                                                                url={
-                                                                    mediaUrl
-                                                                }
-                                                                disableLink
-                                                                lazy={false}
-                                                            />
-                                                        </div>
-                                                    }
-                                                >
-                                                    <div
-                                                        style={{
-                                                            fontWeight: 600,
-                                                        }}
-                                                    >
-                                                        {index +
-                                                            1}
-
-                                                        .{" "}
-                                                        {row.ADVERTISER_NAME ||
-                                                            "Unknown"}
-                                                    </div>
-
-                                                    <div
-                                                        style={{
-                                                            fontSize: 12,
-                                                        }}
-                                                    >
-                                                        {
-                                                            row.BRAND
-                                                        }
-                                                    </div>
-
-                                                    <div
-                                                        onClick={(
-                                                            e
-                                                        ) =>
-                                                            e.stopPropagation()
-                                                        }
-                                                        style={{
-                                                            marginTop: 6,
-                                                        }}
-                                                    >
-                                                        <Input
-                                                            placeholder="Add remark"
-                                                            value={
-                                                                row.remark ||
-                                                                ""
-                                                            }
-                                                            onChange={(
-                                                                e
-                                                            ) => {
-                                                                handleUpdateRow(
-                                                                    row.id,
-                                                                    "remark",
-                                                                    e
-                                                                        .target
-                                                                        .value
-                                                                );
-
-                                                                onUpdateRow?.(
-                                                                    row.id,
-                                                                    "remark",
-                                                                    e
-                                                                        .target
-                                                                        .value
-                                                                );
-                                                            }}
-                                                        />
-
-                                                        <Checkbox
-                                                            style={{
-                                                                marginTop: 6,
-                                                            }}
-                                                            checked={
-                                                                !!row.isFaulty
-                                                            }
-                                                            onChange={() =>
-                                                                handleFaultyClick(
-                                                                    row
-                                                                )
-                                                            }
-                                                        >
-                                                            Faulty
-                                                        </Checkbox>
-                                                    </div>
-                                                </Card>
-                                            );
-                                        }
-                                    )}
-                                </div>
+                                <GroupGrid
+                                    items={items}
+                                    mediaField={mediaField}
+                                    onSelect={setSelected}
+                                    onFaultyClick={handleFaultyClick}
+                                    onUpdateRow={handleUpdateRow}
+                                    externalUpdateRow={onUpdateRow}
+                                />
                             ),
                         })
                     )}
