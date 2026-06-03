@@ -5,7 +5,7 @@ import { LayoutGrid, Table as TableIcon, ArrowUpDown, ChevronDown } from "lucide
 import { BulbOutlined } from "@ant-design/icons";
 
 import { UploadSection } from "../modals/UploadSection";
-import { MediaTable } from "../modals/MediaTable";
+import { MediaTable } from "../modals/MediaTable_test";
 import FiltersBar from "../modals/FiltersBar";
 import StatsPanel from "../modals/StatsPanel";
 import DistributionTables from "../modals/DistributionTables";

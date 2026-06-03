@@ -16,23 +16,17 @@ export const LazyMedia = ({
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // non-lazy mode
         if (!lazy) {
             setVisible(true);
             return;
         }
 
-        setVisible(false);
-
         const obs = new IntersectionObserver(
             ([entry]) => {
-                if (entry.isIntersecting) {
-                    setVisible(true);
-                    obs.disconnect();
-                }
+                setVisible(entry.isIntersecting);
             },
             {
-                rootMargin: "200px",
+                rootMargin: "300px",
             }
         );
 
@@ -41,19 +35,19 @@ export const LazyMedia = ({
         }
 
         return () => obs.disconnect();
-    }, [lazy, url]);
+    }, [lazy]);
 
     return (
         <div
             ref={ref}
             style={{
                 width: "100%",
-                height: "100%",
+                minHeight: 250,
             }}
         >
             {visible
                 ? renderMedia(url, disableLink)
-                : "Loading..."}
+                : null}
         </div>
     );
 };
