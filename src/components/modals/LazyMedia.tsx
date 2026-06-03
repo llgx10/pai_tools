@@ -42,7 +42,7 @@ export const LazyMedia = ({
             ref={ref}
             style={{
                 width: "100%",
-                minHeight: 250,
+                height: "100%",
             }}
         >
             {visible
